@@ -45,3 +45,14 @@ def b64encode(s):
                 d = d if d else -1
         sout = sout + alphabet[c] + alphabet[d]
     return sout
+
+def fixed_xor(buffer_a, buffer_b):
+    assert(len(buffer_a) == len(buffer_b))
+    buffer_c = bytearray(len(buffer_a))
+    for i in range(len(buffer_a)):
+        buffer_c[i] = buffer_a[i] ^ buffer_b[i]
+    return buffer_c
+
+def xor_cipher(plain, key):
+    assert(len(key) == 1)
+    return bytearray(map(lambda x: x ^ key[0], plain))
