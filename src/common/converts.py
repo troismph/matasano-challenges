@@ -15,6 +15,7 @@ def unhex(s):
         return v
 
     def unhex_bytes_it(ss):
+        assert(len(ss) % 2 == 0)
         chips = [s[x - 2 if x - 2 > 0 else None : x] \
                  for x in range(len(ss), 0, -2)]
         for chip in reversed(chips):
@@ -47,12 +48,13 @@ def b64encode(s):
     return sout
 
 def fixed_xor(buffer_a, buffer_b):
-    assert(len(buffer_a) == len(buffer_b))
-    buffer_c = bytearray(len(buffer_a))
-    for i in range(len(buffer_a)):
+    l = min(len(buffer_a), len(buffer_b))
+    buffer_c = bytearray(l)
+    for i in range(l):
         buffer_c[i] = buffer_a[i] ^ buffer_b[i]
     return buffer_c
 
 def xor_cipher(plain, key):
-    assert(len(key) == 1)
-    return bytearray(map(lambda x: x ^ key[0], plain))
+    keylen = len(key)
+    chips = (plain[i: i + keylen] for i in range(0, len(plain), keylen))
+    return reduce(lambda x, y: x + y, map(lambda x: fixed_xor(x, key), chips))

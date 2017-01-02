@@ -7,7 +7,7 @@ from common.converts import unhex, b64encode, fixed_xor, xor_cipher
 def hex2b64(hexstr):
     return b64encode(unhex(hexstr))
 
-class MatasanoSet1(unittest.TestCase):
+class Set1(unittest.TestCase):
 
     def challenge1(self):
         si = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
@@ -21,6 +21,13 @@ class MatasanoSet1(unittest.TestCase):
         ic = unhex("746865206b696420646f6e277420706c6179")
         tc = fixed_xor(ia, ib)
         self.assertEqual(ic, tc)
+
+    def challenge5(self):
+        key = bytearray("ICE")
+        si = bytearray("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal")
+        so = unhex("0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f")
+        to = xor_cipher(si, key)
+        self.assertEqual(so, to)
 
 if __name__ == '__main__':
     unittest.main()
