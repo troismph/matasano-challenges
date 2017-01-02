@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+
 def unhex(s):
     def unhex_byte(ss):
         v = 0
@@ -25,17 +26,18 @@ def unhex(s):
     r = bytearray(unhex_bytes_it(s))
     return r
 
+B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+
 def b64encode(s):
     # s must be a bytearray
-    alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
 
     npad = (3 - len(s) % 3) % 3
     s = s + bytearray([0 for x in range(npad)])
 
     sout = ''
     for i in range(0, len(s), 3):
-        sout = sout + alphabet[(s[i] & 0xfc) >> 2]
-        sout = sout + alphabet[((s[i] & 0x03) << 4) + (s[i + 1] >> 4)]
+        sout = sout + B64_ALPHABET[(s[i] & 0xfc) >> 2]
+        sout = sout + B64_ALPHABET[((s[i] & 0x03) << 4) + (s[i + 1] >> 4)]
         c = ((s[i + 1] & 0x0f) << 2) + ((s[i + 2] & 0xc0) >> 6)
         d = s[i + 2] & 0x3f
         if i + 3 == len(s):
@@ -44,8 +46,42 @@ def b64encode(s):
                 d = d if d else -1
             elif npad == 1:
                 d = d if d else -1
-        sout = sout + alphabet[c] + alphabet[d]
+        sout = sout + B64_ALPHABET[c] + B64_ALPHABET[d]
     return sout
+
+def b64decode(s):
+    # s must be a string
+    assert(len(s) % 4 == 0)
+    def decode_char(c):
+        # c must be int
+        if c == ord('+'):
+            return 62
+        elif c == ord('/'):
+            return 63
+        elif c == ord('='):
+            return 0
+        elif c - ord('0') < 10:
+            return c - ord('0') + 52
+        elif c - ord('A') < 26:
+            return c - ord('A')
+        elif c - ord('a') < 26:
+            return c - ord('a') + 26
+        else:
+            assert(False)
+
+    def decode_quartet(q):
+        # q must be string
+        assert(len(q) == 4)
+        s = bytearray(3)
+        t = [decode_char(ord(x)) for x in q]
+        s[0] = (t[0] << 2) + ((t[1] & 0x30) >> 4)
+        s[1] = ((t[1] & 0x0f) << 4) + ((t[2] & 0x3c) >> 2)
+        s[2] = ((t[2] & 0x03) << 6) + t[3]
+        npad = q.count('=')
+        return s[:-npad if npad else None]
+
+    triples = [decode_quartet(s[i : i + 4]) for i in range(0, len(s), 4)]
+    return bytearray().join(triples)
 
 def fixed_xor(buffer_a, buffer_b):
     l = min(len(buffer_a), len(buffer_b))
@@ -58,3 +94,8 @@ def xor_cipher(plain, key):
     keylen = len(key)
     chips = (plain[i: i + keylen] for i in range(0, len(plain), keylen))
     return reduce(lambda x, y: x + y, map(lambda x: fixed_xor(x, key), chips))
+
+def hamming_distance(buffer_a, buffer_b):
+    assert(len(buffer_a) == len(buffer_b))
+    byte_cnt = lambda x: bin(x[0] ^ x[1]).count("1")
+    return reduce(lambda x, y: x + y, map(byte_cnt, zip(buffer_a, buffer_b)))

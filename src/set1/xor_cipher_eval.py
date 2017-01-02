@@ -45,5 +45,5 @@ def eval_dict(plain):
 
 def solve(cipherhex):
     keys = bytearray(range(128))
-    results = eval_keys(cipherhex, keys, eval_dict)
+    results = eval_keys(cipherhex, keys, eval_freq)
     return results
