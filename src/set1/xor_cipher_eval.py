@@ -36,7 +36,7 @@ def eval_keys(arr_cipher, arr_keys, eval_func):
     return eval_items
 
 def get_alphabet_count(plain):
-    cnt = sum([1 if str(x) in ALPHABET else 0 for x in plain])
+    cnt = sum([1 if chr(x) in ALPHABET else 0 for x in plain])
     return cnt
 
 def get_rel(str_order):
