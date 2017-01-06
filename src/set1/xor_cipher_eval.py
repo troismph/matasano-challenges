@@ -61,7 +61,7 @@ def eval_dict(plain):
     if eval_dict.dictionary is None:
         with open('set1/dictionary.txt') as f:
             eval_dict.dictionary = set([x.rstrip() for x in f])
-    words = str(plain).split(' ')
+    words = str(plain).split()
     if len(words) <= 1:
         return 100
     word_len = reduce(lambda x, y: x + y, map(lambda x: len(x) if x in eval_dict.dictionary else 0, words))
@@ -97,4 +97,4 @@ def cross(vectors):
         for x in ri:
             ret.append(x + [v])
     return ret
-        
+
