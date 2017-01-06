@@ -6,6 +6,7 @@ import editdistance
 
 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+INVALID_ALPHABET = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f"
 KNOWN_FREQ_SEQ = "ETAOINSRHDLUCMFYWGPBVKXQJZ"
 
 @static_vars(alphabet=None)
@@ -24,19 +25,12 @@ def get_chr_freq(s):
     freq_seq = map(lambda x: chr(x[0]), freq_items)
     return bytearray(freq_seq)
 
-def eval_keys(arr_cipher, arr_keys, eval_func):
-    eval_items = []
-    for cipher in arr_cipher:
-        for key in arr_keys:
-            plain = xor_cipher(cipher, bytearray([key])).upper()
-            ab_ratio = get_alphabet_count(plain) * 1.0 / len(plain)
-            score = eval_func(plain)
-            eval_items.append([key, 1.0 - ab_ratio, score, plain, cipher])
-    eval_items.sort(key=lambda x: x[1:3], reverse=True)
-    return eval_items
-
 def get_alphabet_count(plain):
     cnt = sum([1 if chr(x) in ALPHABET else 0 for x in plain])
+    return cnt
+
+def get_invalid_alphabet_count(plain):
+    cnt = sum([1 if chr(x) in INVALID_ALPHABET else 0 for x in plain])
     return cnt
 
 def get_rel(str_order):
@@ -73,7 +67,34 @@ def eval_dict(plain):
     word_len = reduce(lambda x, y: x + y, map(lambda x: len(x) if x in eval_dict.dictionary else 0, words))
     return 100 - word_len * 100.0 / len(plain)
 
+def eval_keys(arr_cipher, arr_keys, eval_func, inv_thres=0):
+    eval_items = []
+    for cipher in arr_cipher:
+        for key in arr_keys:
+            plain = xor_cipher(cipher, bytearray([key])).upper()
+            inv_ratio = get_invalid_alphabet_count(plain) * 1.0 / len(plain)
+            if inv_ratio > inv_thres:
+                continue
+            ab_ratio = get_alphabet_count(plain) * 1.0 / len(plain)
+            score = eval_func(plain)
+            eval_items.append([key, 1.0 - ab_ratio, score, plain, cipher])
+    eval_items.sort(key=lambda x: x[1:3])
+    return eval_items
+
 def solve(cipher):
     keys = bytearray(range(128))
-    results = eval_keys(cipher, keys, eval_order)
+    results = eval_keys(cipher, keys, eval_freq)
     return results
+
+def cross(vectors):
+    if len(vectors) == 0:
+        return []
+    if len(vectors) == 1:
+        return [[x] for x in vectors[0]]
+    ret = []
+    ri = cross(vectors[:-1])
+    for v in vectors[-1]:
+        for x in ri:
+            ret.append(x + [v])
+    return ret
+        
