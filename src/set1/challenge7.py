@@ -1,45 +1,36 @@
 #!/usr/bin/python
 
 import cffi
+from common.converts import b64decode
 
 
-def prep_cffi():
-    _FFI = cffi.FFI()
-    _FFI.cdef("""
-    int decrypt_aes_128_ecb(unsigned char* cipher,
-        unsigned char* key, unsigned char* plain,
-        unsigned int plainlen);
-    int encrypt_aes_128_ecb(unsigned char* cipher,
-        unsigned char* key, unsigned char* plain,
-        unsigned int cipherlen);""")
-    _C = _FFI.verify("""
-    #include <openssl/evp.h>
+class CFFIEnvType:
+    def __init__(self):
+        with open("set1/challenge7.h") as f:
+            header_code = f.read()
+        with open("set1/challenge7.c") as f:
+            impl_code = f.read()
+        self.FFI = cffi.FFI()
+        self.FFI.cdef(header_code)
+        self.C = self.FFI.verify(impl_code, libraries=["crypto"])
 
-    int decrypt_aes_128_ecb(unsigned char* cipher,
-        unsigned char* key, unsigned char* plain,
-        unsigned int plainlen) {
-        EVP_CIPHER_CTX ctx;
 
-    }
-
-""")
+CFFIEnv = CFFIEnvType()
 
 def decrypt_aes_128_ecb(cipher, key):
     # we handle only bytearrays!
-    pass
-
-
+    cipher_len = len(cipher)
+    plain_len = cipher_len + 128
+    plain = CFFIEnv.FFI.new("char[%s]" % (plain_len))
+    n = CFFIEnv.C.decrypt_aes_128_ecb(cipher, cipher_len, plain, plain_len, key)
+    print "%d bytes decrypted" % n
+    return CFFIEnv.FFI.string(plain, n)
 
 def run():
-    _FFI = cffi.FFI()
-    _FFI.cdef("""
-    int call_me(int a, int b);""")
-    _C = _FFI.verify("""
-    int call_me(int a, int b){
-        int c = a + b;
-        return c;
-    }""")
-    r = _C.call_me(99, 99)
-    print r
+    with open("set1/7.txt") as f:
+        cipher = str(b64decode(f.read().replace('\n', '')))
+    key = "YELLOW SUBMARINE"
+    plain = decrypt_aes_128_ecb(cipher, key)
+    print plain
 
 run()
