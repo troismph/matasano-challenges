@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 from xor_cipher_eval import solve
-from common.converts import unhex
+from converts import unhex
 
 
 def challenge4():
-    with open('set1/4.txt') as f:
+    with open('4.txt') as f:
         arr_cipherhex = [bytearray(unhex(x.rstrip())) for x in f]
     results = solve(arr_cipherhex)
     for x in results[:50]:

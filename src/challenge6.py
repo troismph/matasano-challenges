@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from common.converts import unhex, hamming_distance, b64decode, xor_cipher
+from converts import unhex, hamming_distance, b64decode, xor_cipher
 from xor_cipher_eval import solve, cross
 
 def get_key_distance(cipher, key_size):
@@ -26,7 +26,7 @@ def find_key(cipher, key_size):
     return key_guess
 
 def run():
-    with open('set1/6.txt') as f:
+    with open('6.txt') as f:
         cipher = b64decode(f.read().replace('\n', ''))
     key_size = find_key_size(cipher, 40)[0][0]
     guess_idx = [0 for x in range(key_size)]
@@ -39,12 +39,5 @@ def run():
     # side marks for hand-tuning
     print "01234567890123456789012345678901234567890123456789"
     print plain
-
-def run2():
-    with open('set1/6.txt') as f:
-        cipher = b64decode(f.read().replace('\n', ''))
-    hd = find_key_size(cipher, 40)
-    for x in hd:
-        print "%d:%f" % (x[0], x[1])
 
 run()

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from common.converts import unhex
+from converts import unhex
 
 
 def eval_dup(s):
@@ -18,7 +18,7 @@ def detect_stat(stat):
     return ret
 
 def run():
-    with open("set1/8.txt") as f:
+    with open("8.txt") as f:
         ciphers = [str(unhex(line.rstrip())) for line in f.readlines()]
     lc = 0
     for c in ciphers:

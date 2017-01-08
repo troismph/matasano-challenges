@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from common.misc import static_vars
-from common.converts import unhex, xor_cipher
+from misc import static_vars
+from converts import unhex, xor_cipher
 import editdistance
 
 

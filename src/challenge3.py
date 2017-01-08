@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from xor_cipher_eval import solve
-from common.converts import unhex
+from converts import unhex
 
 
 def challenge3():
