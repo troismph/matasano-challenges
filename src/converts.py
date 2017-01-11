@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import cffi
+from misc import static_vars
 
 
 def unhex(s):
@@ -106,3 +108,27 @@ def pkcs7_pad(buf, block_len):
     if delta == 0:
         delta = block_len
     buf.extend(bytearray([delta for x in range(delta)]))
+
+@static_vars(CFFIEnv=None)
+def decrypt_aes_128_ecb(cipher, key):
+    # we handle only bytearrays!
+    class CFFIEnvType:
+        def __init__(self):
+            with open("challenge7.h") as f:
+                header_code = f.read()
+            with open("challenge7.c") as f:
+                impl_code = f.read()
+            self.FFI = cffi.FFI()
+            self.FFI.cdef(header_code)
+            self.C = self.FFI.verify(impl_code, libraries=["crypto"])
+
+    if decrypt_aes_128_ecb.CFFIEnv is None:
+        decrypt_aes_128_ecb.CFFIEnv = CFFIEnvType()
+    cipher_len = len(cipher)
+    plain_len = cipher_len + 128
+    plain = decrypt_aes_128_ecb.CFFIEnv.FFI.new("char[%s]" % (plain_len))
+    n = decrypt_aes_128_ecb.CFFIEnv.C.decrypt_aes_128_ecb(cipher, cipher_len, plain, plain_len, key)
+    return decrypt_aes_128_ecb.CFFIEnv.FFI.string(plain, n)
+
+def cbc(buf, key):
+    pass
