@@ -99,3 +99,10 @@ def hamming_distance(buffer_a, buffer_b):
     assert(len(buffer_a) == len(buffer_b))
     byte_cnt = lambda x: bin(x[0] ^ x[1]).count("1")
     return reduce(lambda x, y: x + y, map(byte_cnt, zip(buffer_a, buffer_b)))
+
+def pkcs7_pad(buf, block_len):
+    # buf must be a bytearray
+    delta = block_len - (len(buf) % block_len)
+    if delta == 0:
+        delta = block_len
+    buf.extend(bytearray([delta for x in range(delta)]))
