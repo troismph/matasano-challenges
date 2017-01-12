@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import cffi
-from misc import static_vars
+from misc import static_vars, Singleton
 
 
 def unhex(s):
@@ -25,16 +25,14 @@ def unhex(s):
             v = unhex_byte(chip)
             yield v
 
-    r = bytearray(unhex_bytes_it(s))
+    r = str(bytearray(unhex_bytes_it(s)))
     return r
 
 B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
 
 def b64encode(s):
-    # s must be a bytearray
-
     npad = (3 - len(s) % 3) % 3
-    s = s + bytearray([0 for x in range(npad)])
+    s = s + str(bytearray([0 for x in range(npad)]))
 
     sout = ''
     for i in range(0, len(s), 3):
@@ -83,7 +81,7 @@ def b64decode(s):
         return s[:-npad if npad else None]
 
     triples = [decode_quartet(s[i : i + 4]) for i in range(0, len(s), 4)]
-    return bytearray().join(triples)
+    return str(bytearray().join(triples))
 
 def fixed_xor(buffer_a, buffer_b):
     l = min(len(buffer_a), len(buffer_b))
@@ -103,32 +101,40 @@ def hamming_distance(buffer_a, buffer_b):
     return reduce(lambda x, y: x + y, map(byte_cnt, zip(buffer_a, buffer_b)))
 
 def pkcs7_pad(buf, block_len):
-    # buf must be a bytearray
     delta = block_len - (len(buf) % block_len)
     if delta == 0:
         delta = block_len
-    buf.extend(bytearray([delta for x in range(delta)]))
+    buf.extend(str(bytearray([delta for x in range(delta)])))
 
-@static_vars(CFFIEnv=None)
-def decrypt_aes_128_ecb(cipher, key):
+class OpenSSLCFFI(object):
+    __metaclass__ = Singleton
+    def __init__(self):
+        with open("openssl_call.h") as f:
+            header_code = f.read()
+        with open("openssl_call.c") as f:
+            impl_code = f.read()
+        self.FFI = cffi.FFI()
+        self.FFI.cdef(header_code)
+        self.C = self.FFI.verify(impl_code, libraries=["crypto"])
+
+def decrypt_aes_128_ecb(in_buf, key):
+    # we handle only strings
+    cffienv = OpenSSLCFFI()
+    in_len = len(in_buf)
+    out_len = in_len + 128
+    out_buf = cffienv.FFI.new("unsigned char[]", out_len)
+    n = cffienv.C.decrypt_aes_128_ecb(in_buf, in_len, out_buf, out_len, key)
+    return str(cffienv.FFI.buffer(out_buf, n))
+
+def encrypt_aes_128_ecb(in_buf, key):
+    cffienv = OpenSSLCFFI()
+    in_len = len(in_buf)
+    out_len = in_len + 128
+    out_buf = cffienv.FFI.new("unsigned char[]", out_len)
+    n = cffienv.C.encrypt_aes_128_ecb(in_buf, in_len, out_buf, out_len, key)
+    return str(cffienv.FFI.buffer(out_buf, n))
+
+def encrypt_aes_128_cbc(buf, key):
     # we handle only bytearrays!
-    class CFFIEnvType:
-        def __init__(self):
-            with open("challenge7.h") as f:
-                header_code = f.read()
-            with open("challenge7.c") as f:
-                impl_code = f.read()
-            self.FFI = cffi.FFI()
-            self.FFI.cdef(header_code)
-            self.C = self.FFI.verify(impl_code, libraries=["crypto"])
-
-    if decrypt_aes_128_ecb.CFFIEnv is None:
-        decrypt_aes_128_ecb.CFFIEnv = CFFIEnvType()
-    cipher_len = len(cipher)
-    plain_len = cipher_len + 128
-    plain = decrypt_aes_128_ecb.CFFIEnv.FFI.new("char[%s]" % (plain_len))
-    n = decrypt_aes_128_ecb.CFFIEnv.C.decrypt_aes_128_ecb(cipher, cipher_len, plain, plain_len, key)
-    return decrypt_aes_128_ecb.CFFIEnv.FFI.string(plain, n)
-
-def cbc(buf, key):
+    cffienv = OpenSSLCFFI()
     pass

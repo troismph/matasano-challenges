@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import unittest
-from converts import unhex, b64encode, b64decode
+from converts import unhex, b64encode, b64decode, encrypt_aes_128_ecb, decrypt_aes_128_ecb
 
 
 class TestConverts(unittest.TestCase):
@@ -19,6 +19,13 @@ class TestConverts(unittest.TestCase):
         so = bytearray("I'm the king of the world!")
         to = b64decode(si)
         self.assertEqual(so, to)
+
+    def test_aes_128_ecb(self):
+        key = "YELLOW SUBMARINE"
+        si = "I'll give him an offer he can't refuse."
+        eo = encrypt_aes_128_ecb(si, key)
+        do = decrypt_aes_128_ecb(eo, key)
+        self.assertEqual(si, do)
 
 if __name__ == "__main__":
     unittest.main()
