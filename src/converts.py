@@ -107,6 +107,10 @@ def pkcs7_pad(buf, block_len):
         delta = block_len
     buf.extend(bytearray([delta for x in range(delta)]))
 
+def pkcs7_unpad(buf, block_len):
+    pad_len = buf[-1] if buf[-1] != 0 else block_len
+    del buf[-pad_len:]
+
 class OpenSSLCFFI(object):
     __metaclass__ = Singleton
     def __init__(self):
@@ -126,7 +130,7 @@ def decrypt_aes_128_ecb(in_buf, key):
     out_buf = cffienv.FFI.new("unsigned char[]", out_len)
     in_buf_s = str(in_buf)
     key_s = str(key)
-    n = cffienv.C.decrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s)
+    n = cffienv.C.decrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s, 1)
     return bytearray(cffienv.FFI.buffer(out_buf, n))
 
 def encrypt_aes_128_ecb(in_buf, key):
@@ -136,10 +140,40 @@ def encrypt_aes_128_ecb(in_buf, key):
     out_buf = cffienv.FFI.new("unsigned char[]", out_len)
     in_buf_s = str(in_buf)
     key_s = str(key)
-    n = cffienv.C.encrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s)
+    n = cffienv.C.encrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s, 1)
     return bytearray(cffienv.FFI.buffer(out_buf, n))
 
-def encrypt_aes_128_cbc(buf, key):
+def encrypt_aes_128_cbc(in_buf, key, iv):
     # we handle only bytearrays!
+    key_len = 16
+    pkcs7_pad(in_buf, key_len)
     cffienv = OpenSSLCFFI()
-    pass
+    key_s = str(key)
+    nv = iv
+    in_len = len(in_buf)
+    out_buf = cffienv.FFI.new("unsigned char[]", key_len)
+    ret_buf = bytearray()
+    for idx in xrange(0, in_len, key_len):
+        blk = fixed_xor(nv, in_buf[idx : idx + key_len])
+        n = cffienv.C.encrypt_aes_128_ecb(str(blk), key_len, out_buf, key_len, key_s, 0)
+        nv = bytearray(cffienv.FFI.buffer(out_buf, n))
+        ret_buf = ret_buf + nv
+    return ret_buf
+
+def decrypt_aes_128_cbc(in_buf, key, iv):
+    key_len = 16
+    cffienv = OpenSSLCFFI()
+    key_s = str(key)
+    nv = iv
+    out_buf = cffienv.FFI.new("unsigned char[]", key_len)
+    ret_buf = bytearray()
+    for idx in xrange(0, len(in_buf), key_len):
+        n = cffienv.C.decrypt_aes_128_ecb(str(in_buf[idx : idx + key_len]), key_len, out_buf, key_len, key_s, 0)
+        plain_blk = fixed_xor(nv, bytearray(cffienv.FFI.buffer(out_buf, n)))
+        nv = in_buf[idx : idx + key_len]
+        ret_buf = ret_buf + plain_blk
+    pkcs7_unpad(ret_buf, key_len)
+    return ret_buf
+
+
+
