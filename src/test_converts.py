@@ -21,8 +21,9 @@ class TestConverts(unittest.TestCase):
         self.assertEqual(so, to)
 
     def test_aes_128_ecb(self):
-        key = "YELLOW SUBMARINE"
-        si = "I'll give him an offer he can't refuse."
+        key = bytearray("YELLOW SUBMARINE")
+        si = bytearray("I'll give him an offer he can't refuse.")
+        import pdb; pdb.set_trace()
         eo = encrypt_aes_128_ecb(si, key)
         do = decrypt_aes_128_ecb(eo, key)
         self.assertEqual(si, do)

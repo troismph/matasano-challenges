@@ -5,6 +5,7 @@ from misc import static_vars, Singleton
 
 def unhex(s):
     def unhex_byte(ss):
+        # ss must be a string
         v = 0
         for i in range(len(ss)):
             if ss[i] >= '0' and ss[i] <= '9':
@@ -25,14 +26,14 @@ def unhex(s):
             v = unhex_byte(chip)
             yield v
 
-    r = str(bytearray(unhex_bytes_it(s)))
+    r = bytearray(unhex_bytes_it(s))
     return r
 
 B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
 
 def b64encode(s):
     npad = (3 - len(s) % 3) % 3
-    s = s + str(bytearray([0 for x in range(npad)]))
+    s = s + bytearray([0 for x in range(npad)])
 
     sout = ''
     for i in range(0, len(s), 3):
@@ -81,7 +82,7 @@ def b64decode(s):
         return s[:-npad if npad else None]
 
     triples = [decode_quartet(s[i : i + 4]) for i in range(0, len(s), 4)]
-    return str(bytearray().join(triples))
+    return bytearray().join(triples)
 
 def fixed_xor(buffer_a, buffer_b):
     l = min(len(buffer_a), len(buffer_b))
@@ -104,7 +105,7 @@ def pkcs7_pad(buf, block_len):
     delta = block_len - (len(buf) % block_len)
     if delta == 0:
         delta = block_len
-    buf.extend(str(bytearray([delta for x in range(delta)])))
+    buf.extend(bytearray([delta for x in range(delta)]))
 
 class OpenSSLCFFI(object):
     __metaclass__ = Singleton
@@ -118,21 +119,25 @@ class OpenSSLCFFI(object):
         self.C = self.FFI.verify(impl_code, libraries=["crypto"])
 
 def decrypt_aes_128_ecb(in_buf, key):
-    # we handle only strings
+    # we handle only bytearrays
     cffienv = OpenSSLCFFI()
     in_len = len(in_buf)
     out_len = in_len + 128
     out_buf = cffienv.FFI.new("unsigned char[]", out_len)
-    n = cffienv.C.decrypt_aes_128_ecb(in_buf, in_len, out_buf, out_len, key)
-    return str(cffienv.FFI.buffer(out_buf, n))
+    in_buf_s = str(in_buf)
+    key_s = str(key)
+    n = cffienv.C.decrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s)
+    return bytearray(cffienv.FFI.buffer(out_buf, n))
 
 def encrypt_aes_128_ecb(in_buf, key):
     cffienv = OpenSSLCFFI()
     in_len = len(in_buf)
     out_len = in_len + 128
     out_buf = cffienv.FFI.new("unsigned char[]", out_len)
-    n = cffienv.C.encrypt_aes_128_ecb(in_buf, in_len, out_buf, out_len, key)
-    return str(cffienv.FFI.buffer(out_buf, n))
+    in_buf_s = str(in_buf)
+    key_s = str(key)
+    n = cffienv.C.encrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s)
+    return bytearray(cffienv.FFI.buffer(out_buf, n))
 
 def encrypt_aes_128_cbc(buf, key):
     # we handle only bytearrays!
