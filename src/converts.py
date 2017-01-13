@@ -143,13 +143,14 @@ def encrypt_aes_128_ecb(in_buf, key):
     n = cffienv.C.encrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s, 1)
     return bytearray(cffienv.FFI.buffer(out_buf, n))
 
-def encrypt_aes_128_cbc(in_buf, key, iv):
+def encrypt_aes_128_cbc(in_buf_intact, key, iv=None):
     # we handle only bytearrays!
     key_len = 16
+    in_buf = bytearray(in_buf_intact)
     pkcs7_pad(in_buf, key_len)
     cffienv = OpenSSLCFFI()
     key_s = str(key)
-    nv = iv
+    nv = iv or bytearray(key_len)
     in_len = len(in_buf)
     out_buf = cffienv.FFI.new("unsigned char[]", key_len)
     ret_buf = bytearray()
@@ -160,11 +161,11 @@ def encrypt_aes_128_cbc(in_buf, key, iv):
         ret_buf = ret_buf + nv
     return ret_buf
 
-def decrypt_aes_128_cbc(in_buf, key, iv):
+def decrypt_aes_128_cbc(in_buf, key, iv=None):
     key_len = 16
     cffienv = OpenSSLCFFI()
     key_s = str(key)
-    nv = iv
+    nv = iv or bytearray(key_len)
     out_buf = cffienv.FFI.new("unsigned char[]", key_len)
     ret_buf = bytearray()
     for idx in xrange(0, len(in_buf), key_len):

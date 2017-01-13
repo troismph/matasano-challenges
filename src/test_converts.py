@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import unittest
-from converts import unhex, b64encode, b64decode, encrypt_aes_128_ecb, decrypt_aes_128_ecb
+from converts import unhex, b64encode, b64decode, encrypt_aes_128_ecb, decrypt_aes_128_ecb, encrypt_aes_128_cbc, decrypt_aes_128_cbc
 
 
 class TestConverts(unittest.TestCase):
@@ -21,11 +21,20 @@ class TestConverts(unittest.TestCase):
         self.assertEqual(so, to)
 
     def test_aes_128_ecb(self):
-        key = bytearray("YELLOW SUBMARINE")
-        si = bytearray("I'll give him an offer he can't refuse.")
-        eo = encrypt_aes_128_ecb(si, key)
-        do = decrypt_aes_128_ecb(eo, key)
-        self.assertEqual(si, do)
+        def _t_func(plain, key):
+            eo = encrypt_aes_128_ecb(plain, key)
+            do = decrypt_aes_128_ecb(eo, key)
+            self.assertEqual(plain, do)
+        _t_func(bytearray("I'll give him an offer he can't refuse."), bytearray("YELLOW SUBMARINE"))
+        _t_func(bytearray("You are arrogant, I've never seen any one as arrogant as you!"), bytearray("TOMBRAIDER CROFT"))
+
+    def test_aes_128_cbc(self):
+        def _t_func(plain, key):
+            eo = encrypt_aes_128_cbc(plain, key)
+            do = decrypt_aes_128_cbc(eo, key)
+            self.assertEqual(plain, do)
+        _t_func(bytearray("I'll give him an offer he can't refuse."), bytearray("YELLOW SUBMARINE"))
+        _t_func(bytearray("You are arrogant, I've never seen any one as arrogant as you!"), bytearray("TOMBRAIDER CROFT"))
 
 if __name__ == "__main__":
     unittest.main()
