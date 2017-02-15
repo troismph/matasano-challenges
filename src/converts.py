@@ -108,12 +108,12 @@ def pkcs7_pad(buf, block_len):
     buf.extend(bytearray([delta for x in range(delta)]))
 
 def pkcs7_unpad(buf, block_len):
-    pad_len = ord(buf[-1]) if ord(buf[-1]) != 0 else block_len
+    pad_len = buf[-1] if buf[-1] != 0 else block_len
     # validate padding
     for x in buf[-pad_len:]:
         if x != buf[-1]:
             raise ValueError("Bad padding")
-        return buf[:-pad_len]
+    del buf[-pad_len:]
 
 class OpenSSLCFFI(object):
     __metaclass__ = Singleton
@@ -179,6 +179,3 @@ def decrypt_aes_128_cbc(in_buf, key, iv=None):
         ret_buf = ret_buf + plain_blk
     pkcs7_unpad(ret_buf, key_len)
     return ret_buf
-
-
-
