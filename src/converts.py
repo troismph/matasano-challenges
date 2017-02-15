@@ -108,8 +108,12 @@ def pkcs7_pad(buf, block_len):
     buf.extend(bytearray([delta for x in range(delta)]))
 
 def pkcs7_unpad(buf, block_len):
-    pad_len = buf[-1] if buf[-1] != 0 else block_len
-    del buf[-pad_len:]
+    pad_len = ord(buf[-1]) if ord(buf[-1]) != 0 else block_len
+    # validate padding
+    for x in buf[-pad_len:]:
+        if x != buf[-1]:
+            raise ValueError("Bad padding")
+        return buf[:-pad_len]
 
 class OpenSSLCFFI(object):
     __metaclass__ = Singleton
