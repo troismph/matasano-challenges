@@ -152,3 +152,5 @@ def run():
     attacker.solve()
     print attacker.guess
 
+run()
+
