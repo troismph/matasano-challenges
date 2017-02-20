@@ -1,7 +1,9 @@
 #!/usr/bin/python
 import cffi
 from misc import static_vars, Singleton
+import struct
 
+KEY_LEN = 16
 
 def unhex(s):
     def unhex_byte(ss):
@@ -180,3 +182,23 @@ def decrypt_aes_128_cbc(in_buf, key, iv=None, unpad=True):
     if unpad:
         pkcs7_unpad(ret_buf, key_len)
     return ret_buf
+
+def key_stream_aes_128_ctr(key, nonce, block_count):
+    counter = nonce + bytearray(struct.pack('<Q', block_count))
+    ks = encrypt_aes_128_ecb(counter, key)
+    return ks
+
+def decrypt_aes_128_ctr(in_buf, key, nonce=None):
+    # fixed format:
+    # 64 bit unsigned little endian nonce
+    # 64 bit little endian block count (byte count / 16)
+    if nonce is None:
+        nonce = bytearray(8)
+    n_block = (len(in_buf) + KEY_LEN - 1) / KEY_LEN
+    plain = bytearray()
+    for x in range(n_block):
+        ks = key_stream_aes_128_ctr(key, nonce, x)
+        start = x * KEY_LEN
+        end = min((x + 1) * KEY_LEN, len(in_buf))
+        plain += fixed_xor(in_buf[start:end], ks)
+    return plain
