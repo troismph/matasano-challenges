@@ -165,7 +165,7 @@ def encrypt_aes_128_cbc(in_buf_intact, key, iv=None):
         ret_buf = ret_buf + nv
     return ret_buf
 
-def decrypt_aes_128_cbc(in_buf, key, iv=None):
+def decrypt_aes_128_cbc(in_buf, key, iv=None, unpad=True):
     key_len = 16
     cffienv = OpenSSLCFFI()
     key_s = str(key)
@@ -177,5 +177,6 @@ def decrypt_aes_128_cbc(in_buf, key, iv=None):
         plain_blk = fixed_xor(nv, bytearray(cffienv.FFI.buffer(out_buf, n)))
         nv = in_buf[idx : idx + key_len]
         ret_buf = ret_buf + plain_blk
-    pkcs7_unpad(ret_buf, key_len)
+    if unpad:
+        pkcs7_unpad(ret_buf, key_len)
     return ret_buf
