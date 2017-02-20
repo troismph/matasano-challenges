@@ -202,3 +202,6 @@ def decrypt_aes_128_ctr(in_buf, key, nonce=None):
         end = min((x + 1) * KEY_LEN, len(in_buf))
         plain += fixed_xor(in_buf[start:end], ks)
     return plain
+
+def encrypt_aes_128_ctr(in_buf, key, nonce=None):
+    return decrypt_aes_128_ctr(in_buf, key, nonce)
