@@ -5,20 +5,14 @@ from converts import unhex, xor_cipher
 import editdistance
 
 
-ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 "
 INVALID_ALPHABET = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f"
 KNOWN_FREQ_SEQ = "ETAOINSRHDLUCMFYWGPBVKXQJZ"
-
-@static_vars(alphabet=None)
-def in_alphabet(c):
-    if in_alphabet.alphabet is None:
-        in_alphabet.alphabet = set([ord(x) for x in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"])
-    return c in in_alphabet.alphabet
 
 def get_chr_freq(s):
     freq = {}
     for c in s:
-        if not in_alphabet(c):
+        if not(chr(c) in ALPHABET):
             continue
         freq[c] = freq.get(c, 0) + 1
     freq_items = sorted(freq.items(), key=lambda x: x[1], reverse=True)
@@ -30,7 +24,7 @@ def get_alphabet_count(plain):
     return cnt
 
 def get_invalid_alphabet_count(plain):
-    cnt = sum([1 if chr(x) in INVALID_ALPHABET else 0 for x in plain])
+    cnt = sum([1 if chr(x) in INVALID_ALPHABET or x > 127 else 0 for x in plain])
     return cnt
 
 def get_rel(str_order):
@@ -79,6 +73,7 @@ def eval_keys(arr_cipher, arr_keys, eval_func, inv_thres=0):
             score = eval_func(plain)
             eval_items.append([key, 1.0 - ab_ratio, score, plain, cipher])
     eval_items.sort(key=lambda x: x[1:3])
+    #eval_items.sort(key=lambda x:[x[2], x[1]])
     return eval_items
 
 def solve(cipher):
