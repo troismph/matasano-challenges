@@ -18,7 +18,22 @@ class MT19937:
             self.l = l
             self.f = f
 
-    def __init__(self, w, n, m, r, a, u, d, s, b, t, c, l, f):
+    def __init__(self):
+        """ default initializer for 32-bit MT19937
+        """
+        w = 32
+        n = 624
+        m = 397
+        r = 31
+        a = 0x9908b0df
+        u = 11
+        d = 0xffffffff
+        s = 7
+        b = 0x9d2c5680
+        t = 15
+        c = 0xefc60000
+        l = 18
+        f = 1812433253
         self.config = self.Config(w, n, m, r, a, u, d, s, b, t, c, l, f)
         self.MT = [0] * self.config.n
         self.index = self.config.n + 1
