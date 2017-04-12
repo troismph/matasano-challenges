@@ -28,4 +28,5 @@ def seed_finder():
     print 'guess seed: {gs}'.format(gs=guess)
 
 
-seed_finder()
+def run():
+    seed_finder()
