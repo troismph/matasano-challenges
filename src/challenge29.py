@@ -57,10 +57,6 @@ def target(buf):
     return sha1(SECRET_PREFIX + buf)
 
 
-def target2(buf):
-    return Sha1Hash().update(SECRET_PREFIX + buf).digesttuple()
-
-
 def crack_helper(original_msg, pay_load, oracle):
     original_hashmac = target(original_msg)
     sha1_state = struct.unpack(b'>IIIII', original_hashmac)
@@ -74,15 +70,18 @@ def crack_helper(original_msg, pay_load, oracle):
 def cracker():
     pay_load = ";admin=true"
     original_msg = "comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon"
-    forged_msg, forged_hashmac = crack_helper(original_msg, pay_load, len(SECRET_PREFIX))
-    verify_hashmac = target(forged_msg)
-    if verify_hashmac == forged_hashmac:
-        print "Pass"
-        print original_msg
-        print forged_msg
-        print forged_hashmac
-    else:
-        print "Fail"
-        print verify_hashmac
-        print forged_hashmac
+    rounds = 100
+    passed = False
+    for guess_len in range(rounds):
+        forged_msg, forged_hashmac = crack_helper(original_msg, pay_load, guess_len)
+        verify_hashmac = target(forged_msg)
+        if verify_hashmac == forged_hashmac:
+            print "Pass, prefix len guess={n}".format(n=guess_len)
+            print original_msg
+            print forged_msg
+            print forged_hashmac
+            passed = True
+            break
+    if not passed:
+        print "Fail, after {n} tries".format(n=rounds)
 
