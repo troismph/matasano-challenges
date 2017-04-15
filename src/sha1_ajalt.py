@@ -89,6 +89,13 @@ class Sha1Hash(object):
         # Length in bytes of all data that has been processed so far
         self._message_byte_length = 0
 
+    def set_state(self, h, msg_byte_len):
+        # Crack tool for challenge 29
+        # Meant to be called immediately after __init__
+        self._h = h
+        self._message_byte_length = msg_byte_len
+        # self._unprocessed should start with b''
+
     def update(self, arg):
         """Update the current digest.
 
@@ -117,6 +124,9 @@ class Sha1Hash(object):
         """Produce the final hash value (big-endian) as a bytes object"""
         return b''.join(struct.pack(b'>I', h) for h in self._produce_digest())
 
+    def digesttuple(self):
+        return self._produce_digest()
+
     def hexdigest(self):
         """Produce the final hash value (big-endian) as a hex string"""
         return '%08x%08x%08x%08x%08x' % self._produce_digest()
@@ -137,6 +147,9 @@ class Sha1Hash(object):
         # append length of message (before pre-processing), in bits, as 64-bit big-endian integer
         message_bit_length = message_byte_length * 8
         message += struct.pack(b'>Q', message_bit_length)
+
+        # For test convenience in challenge 29
+        self.tail_chunks = message
 
         # Process the final chunk
         # At this point, the length of the message is either 64 or 128 bytes.
