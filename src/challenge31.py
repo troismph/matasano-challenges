@@ -10,7 +10,6 @@ import web, urllib2
 from time import sleep, time
 from binascii import hexlify
 from sys import stdout
-import logging
 
 
 urls = (
@@ -19,11 +18,13 @@ urls = (
 
 
 SECRET_SIGNATURE = bytearray("87f0e629a264fc551001ecb27628bec7293a1192".decode('hex'))
+SLEEP_TIME = 0.05
 
 
 class Index:
     def __init__(self):
         self.sig = SECRET_SIGNATURE
+        print "sleep time {s}".format(s=SLEEP_TIME)
 
     def check_signature(self, signature):
         if len(signature) != len(self.sig):
@@ -31,7 +32,7 @@ class Index:
         for x in range(len(signature)):
             if self.sig[x] != signature[x]:
                 return False
-            sleep(0.05)
+            sleep(SLEEP_TIME)
         return True
 
     def GET(self):
@@ -65,6 +66,11 @@ def get_delay_avg(buf, n):
         ret = urllib2.urlopen(query_url).read()
         end_time = time()
         time_measures.append(end_time - begin_time)
+    # if n >= 5:
+    #     max_delay = max(time_measures)
+    #     min_delay = min(time_measures)
+    #     time_measures.remove(max_delay)
+    #     time_measures.remove(min_delay)
     return sum(time_measures) / len(time_measures)
 
 
@@ -72,29 +78,31 @@ def verify_guess(buf):
     s = hexlify(buf)
     query_url = "http://127.0.0.1:18080/test?file=foo&signature={s}".format(s=s)
     ret = urllib2.urlopen(query_url).read()
-    print ret
     return ret == "Pass"
 
 
-def analyze_delays(delays):
+def analyze_delays(delays, threshold):
     # expect a single outstanding value
-    threshold = 0.04
     delay_avg = sum([x[0] for x in delays]) / len(delays)
     diffs = [x for x in delays if x[0] - delay_avg > threshold]
     diffs.sort(reverse=True)
     return delay_avg, diffs
 
 
-def cracker():
-    logging.basicConfig(filename='c31.log', level=logging.DEBUG)
-    logger = logging.getLogger('c31')
-    avg_width = 1
+def update_candidates(cand, new_diff):
+    if len(cand) == 0:
+        return [x[1] for x in new_diff]
+    else:
+        return [x[1] for x in new_diff if x[1] in cand]
+
+
+def cracker(avg_width=1, threshold=0.04):
     sig_len = len(SECRET_SIGNATURE)
     sig_guess = bytearray(sig_len)
+    candidates = []
     pos = 0
     while pos < sig_len:
         print "Guessing for pos {p}".format(p=pos)
-        logger.debug("Guessing for pos {p}".format(p=pos))
         delays = []
         for byte_guess in range(256):
             sig_guess[pos] = byte_guess
@@ -102,24 +110,31 @@ def cracker():
             delays.append([d, byte_guess])
             print "Trying value {v:02x} delay {d}\r".format(v=byte_guess, d=d),
             stdout.flush()
-            logger.debug("Trying value {v:02x} delay {d}".format(v=byte_guess, d=d))
-        delay_avg, diffs = analyze_delays(delays)
+        delay_avg, diffs = analyze_delays(delays, threshold)
         if len(diffs) == 0:
             print "No outstanding delay found, retrying"
-            logger.debug("No outstanding delay found, retrying")
             continue
         elif len(diffs) > 1:
-            print "Multiple outstanding delays found, avg {a}, will retry".format(a=delay_avg)
-            logger.debug("Multiple outstanding delays found, avg {a}, will retry".format(a=delay_avg))
+            print "Multiple outstanding delays found, avg {a}".format(a=delay_avg)
             for d in diffs:
                 print "Delay {x} guess {y:02x}".format(x=d[0], y=d[1])
-                logger.debug("Delay {x} guess {y:02x}".format(x=d[0], y=d[1]))
+            candidates = update_candidates(candidates, diffs)
+            if len(candidates) == 1:
+                print "Speculation from recent retries: {n:02x}".format(n=candidates[0])
+                sig_guess[pos] = candidates[0]
+                candidates = []
+                pos = pos + 1
+            else:
+                print "Candidates updated to:"
+                for c in candidates:
+                    print "{c:02x}".format(c=c),
+                print ""
                 continue
         else:
+            candidates = []
             hit = diffs[0]
             sig_guess[pos] = hit[1]
             print "Pos {n} delay {d} delay_avg {da} guess {g:02x}".format(n=pos, d=hit[0], da=delay_avg, g=hit[1])
-            logger.debug("Pos {n} delay {d} delay_avg {da} guess {g:02x}".format(n=pos, d=hit[0], da=delay_avg, g=hit[1]))
             pos = pos + 1
     if verify_guess(sig_guess):
         print "Cracked, " + hexlify(sig_guess)
