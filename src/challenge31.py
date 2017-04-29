@@ -6,7 +6,7 @@ To run cracker:
 python -c "import challenge31; challenge31.cracker()"
 """
 
-import web, urllib2
+import web, urllib2, requests
 from time import sleep, time
 from binascii import hexlify
 from sys import stdout
@@ -19,6 +19,7 @@ urls = (
 
 SECRET_SIGNATURE = bytearray("87f0e629a264fc551001ecb27628bec7293a1192".decode('hex'))
 SLEEP_TIME = 0.05
+HTTP_SESSION = requests.Session()
 
 
 class Index:
@@ -47,12 +48,15 @@ def run_server():
 
 
 def delay_test():
+    repeat_count = 10
+    se = requests.Session()
     # let's check what happens when trial signature errors in different digits
     for x in range(len(SECRET_SIGNATURE)):
         t = SECRET_SIGNATURE[:x] + '0' * (len(SECRET_SIGNATURE) - x)
         s = hexlify(t)
         begin_time = time()
-        ret = urllib2.urlopen("http://127.0.0.1:18080/test?file=foo&signature={s}".format(s=s)).read()
+        for y in range(repeat_count):
+            ret = se.get("http://127.0.0.1:18080/test?file=foo&signature={s}".format(s=s)).text
         end_time = time()
         print ret, s, end_time - begin_time
 
@@ -60,18 +64,11 @@ def delay_test():
 def get_delay_avg(buf, n):
     s = hexlify(buf)
     query_url = "http://127.0.0.1:18080/test?file=foo&signature={s}".format(s=s)
-    time_measures = []
+    begin_time = time()
     for x in range(n):
-        begin_time = time()
-        ret = urllib2.urlopen(query_url).read()
-        end_time = time()
-        time_measures.append(end_time - begin_time)
-    # if n >= 5:
-    #     max_delay = max(time_measures)
-    #     min_delay = min(time_measures)
-    #     time_measures.remove(max_delay)
-    #     time_measures.remove(min_delay)
-    return sum(time_measures) / len(time_measures)
+        ret = HTTP_SESSION.get(query_url).text
+    end_time = time()
+    return (end_time - begin_time) / n
 
 
 def verify_guess(buf):
