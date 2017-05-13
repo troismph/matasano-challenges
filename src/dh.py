@@ -8,9 +8,9 @@ DH_g = 2
 
 
 class DHClient:
-    def __init__(self):
-        self.priv_key = random.randrange(DH_p)
-        self.pub_key = mod_exp(DH_g, self.priv_key, DH_p)
+    def __init__(self, p=DH_p, g=DH_g):
+        self.priv_key = random.randrange(p)
+        self.pub_key = mod_exp(g, self.priv_key, p)
 
     def get_shared_key(self, pub_key):
         return big_int_to_bin_str(mod_exp(pub_key, self.priv_key, DH_p))
