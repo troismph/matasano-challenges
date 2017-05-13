@@ -1,4 +1,5 @@
 from utils import mod_exp
+from converts import big_int_to_bin_str
 import random
 
 
@@ -12,7 +13,7 @@ class DHClient:
         self.pub_key = mod_exp(DH_g, self.priv_key, DH_p)
 
     def get_shared_key(self, pub_key):
-        return mod_exp(pub_key, self.priv_key, DH_p)
+        return big_int_to_bin_str(mod_exp(pub_key, self.priv_key, DH_p))
 
 
 def test_dh():

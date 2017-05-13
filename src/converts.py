@@ -5,6 +5,7 @@ import struct
 
 KEY_LEN = 16
 
+
 def unhex(s):
     def unhex_byte(ss):
         # ss must be a string
@@ -21,8 +22,8 @@ def unhex(s):
         return v
 
     def unhex_bytes_it(ss):
-        assert(len(ss) % 2 == 0)
-        chips = [s[x - 2 if x - 2 > 0 else None : x] \
+        assert (len(ss) % 2 == 0)
+        chips = [s[x - 2 if x - 2 > 0 else None: x] \
                  for x in range(len(ss), 0, -2)]
         for chip in reversed(chips):
             v = unhex_byte(chip)
@@ -31,7 +32,9 @@ def unhex(s):
     r = bytearray(unhex_bytes_it(s))
     return r
 
+
 B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+
 
 def b64encode(s):
     npad = (3 - len(s) % 3) % 3
@@ -52,9 +55,11 @@ def b64encode(s):
         sout = sout + B64_ALPHABET[c] + B64_ALPHABET[d]
     return sout
 
+
 def b64decode(s):
     # s must be a string
-    assert(len(s) % 4 == 0)
+    assert (len(s) % 4 == 0)
+
     def decode_char(c):
         # c must be int
         if c == ord('+'):
@@ -70,11 +75,11 @@ def b64decode(s):
         elif c - ord('a') < 26:
             return c - ord('a') + 26
         else:
-            assert(False)
+            assert (False)
 
     def decode_quartet(q):
         # q must be string
-        assert(len(q) == 4)
+        assert (len(q) == 4)
         s = bytearray(3)
         t = [decode_char(ord(x)) for x in q]
         s[0] = (t[0] << 2) + ((t[1] & 0x30) >> 4)
@@ -83,8 +88,9 @@ def b64decode(s):
         npad = q.count('=')
         return s[:-npad if npad else None]
 
-    triples = [decode_quartet(s[i : i + 4]) for i in range(0, len(s), 4)]
+    triples = [decode_quartet(s[i: i + 4]) for i in range(0, len(s), 4)]
     return bytearray().join(triples)
+
 
 def fixed_xor(buffer_a, buffer_b):
     l = min(len(buffer_a), len(buffer_b))
@@ -93,21 +99,25 @@ def fixed_xor(buffer_a, buffer_b):
         buffer_c[i] = buffer_a[i] ^ buffer_b[i]
     return buffer_c
 
+
 def xor_cipher(plain, key):
     keylen = len(key)
     chips = (plain[i: i + keylen] for i in range(0, len(plain), keylen))
     return reduce(lambda x, y: x + y, map(lambda x: fixed_xor(x, key), chips))
 
+
 def hamming_distance(buffer_a, buffer_b):
-    assert(len(buffer_a) == len(buffer_b))
+    assert (len(buffer_a) == len(buffer_b))
     byte_cnt = lambda x: bin(x[0] ^ x[1]).count("1")
     return reduce(lambda x, y: x + y, map(byte_cnt, zip(buffer_a, buffer_b)))
+
 
 def pkcs7_pad(buf, block_len):
     delta = block_len - (len(buf) % block_len)
     if delta == 0:
         delta = block_len
     buf.extend(bytearray([delta for x in range(delta)]))
+
 
 def pkcs7_unpad(buf, block_len):
     pad_len = buf[-1] if buf[-1] != 0 else block_len
@@ -117,8 +127,10 @@ def pkcs7_unpad(buf, block_len):
             raise ValueError("Bad padding")
     del buf[-pad_len:]
 
+
 class OpenSSLCFFI(object):
     __metaclass__ = Singleton
+
     def __init__(self):
         with open("openssl_call.h") as f:
             header_code = f.read()
@@ -127,6 +139,7 @@ class OpenSSLCFFI(object):
         self.FFI = cffi.FFI()
         self.FFI.cdef(header_code)
         self.C = self.FFI.verify(impl_code, libraries=["crypto"])
+
 
 def decrypt_aes_128_ecb(in_buf, key):
     # we handle only bytearrays
@@ -139,6 +152,7 @@ def decrypt_aes_128_ecb(in_buf, key):
     n = cffienv.C.decrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s, 1)
     return bytearray(cffienv.FFI.buffer(out_buf, n))
 
+
 def encrypt_aes_128_ecb(in_buf, key):
     cffienv = OpenSSLCFFI()
     in_len = len(in_buf)
@@ -148,6 +162,7 @@ def encrypt_aes_128_ecb(in_buf, key):
     key_s = str(key)
     n = cffienv.C.encrypt_aes_128_ecb(in_buf_s, in_len, out_buf, out_len, key_s, 1)
     return bytearray(cffienv.FFI.buffer(out_buf, n))
+
 
 def encrypt_aes_128_cbc(in_buf_intact, key, iv=None):
     # we handle only bytearrays!
@@ -161,11 +176,12 @@ def encrypt_aes_128_cbc(in_buf_intact, key, iv=None):
     out_buf = cffienv.FFI.new("unsigned char[]", key_len)
     ret_buf = bytearray()
     for idx in xrange(0, in_len, key_len):
-        blk = fixed_xor(nv, in_buf[idx : idx + key_len])
+        blk = fixed_xor(nv, in_buf[idx: idx + key_len])
         n = cffienv.C.encrypt_aes_128_ecb(str(blk), key_len, out_buf, key_len, key_s, 0)
         nv = bytearray(cffienv.FFI.buffer(out_buf, n))
         ret_buf = ret_buf + nv
     return ret_buf
+
 
 def decrypt_aes_128_cbc(in_buf, key, iv=None, unpad=True):
     key_len = 16
@@ -175,18 +191,20 @@ def decrypt_aes_128_cbc(in_buf, key, iv=None, unpad=True):
     out_buf = cffienv.FFI.new("unsigned char[]", key_len)
     ret_buf = bytearray()
     for idx in xrange(0, len(in_buf), key_len):
-        n = cffienv.C.decrypt_aes_128_ecb(str(in_buf[idx : idx + key_len]), key_len, out_buf, key_len, key_s, 0)
+        n = cffienv.C.decrypt_aes_128_ecb(str(in_buf[idx: idx + key_len]), key_len, out_buf, key_len, key_s, 0)
         plain_blk = fixed_xor(nv, bytearray(cffienv.FFI.buffer(out_buf, n)))
-        nv = in_buf[idx : idx + key_len]
+        nv = in_buf[idx: idx + key_len]
         ret_buf = ret_buf + plain_blk
     if unpad:
         pkcs7_unpad(ret_buf, key_len)
     return ret_buf
 
+
 def key_stream_aes_128_ctr(key, nonce, block_count):
     counter = nonce + bytearray(struct.pack('<Q', block_count))
     ks = encrypt_aes_128_ecb(counter, key)
     return ks
+
 
 def decrypt_aes_128_ctr(in_buf, key, nonce=None):
     # fixed format:
@@ -203,5 +221,13 @@ def decrypt_aes_128_ctr(in_buf, key, nonce=None):
         plain += fixed_xor(in_buf[start:end], ks)
     return plain
 
+
 def encrypt_aes_128_ctr(in_buf, key, nonce=None):
     return decrypt_aes_128_ctr(in_buf, key, nonce)
+
+
+def big_int_to_bin_str(big_int):
+    s = hex(big_int).rstrip('L')[2:]
+    if len(s) % 2 == 1:
+        s = '0' + s
+    return s.decode('hex')
