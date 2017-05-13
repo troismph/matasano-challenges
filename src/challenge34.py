@@ -9,7 +9,6 @@ def enc_msg(msg, key):
     hash_obj.update(key)
     session_key = hash_obj.digest()[:16]
     iv = bytearray(os.urandom(16))
-    # import pdb; pdb.set_trace()
     cipher = encrypt_aes_128_cbc(msg, session_key, iv)
     return cipher, iv
 
