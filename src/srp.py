@@ -85,49 +85,60 @@ class SRPClient:
         if config is None:
             config = SRPDefaultConfig()
         self.config = config
-        self.reg_ok = False
-        self.auth_ok = False
-
-    def reg(self, identity, password=None):
-        self.salt = os.urandom(64)
-        self.identity = identity
-        if password is None:
-            self.password = os.urandom(32)
-        else:
-            self.password = password
-        x = bin_str_to_big_int(sha256(self.salt, self.password))
-        self.verifier = mod_exp(self.config.g, x, self.config.N)
-        self.server.reg(self.identity, self.salt, self.verifier)
-        self.reg_ok = True
-
-    def auth(self):
-        if not self.reg_ok:
-            raise Exception("Client unregistered")
         self.session = {}
+
+    def reg(self, identity, password):
+        salt = os.urandom(64)
+        x = bin_str_to_big_int(sha256(salt, password))
+        verifier = mod_exp(self.config.g, x, self.config.N)
+        self.server.reg(identity, salt, verifier)
+
+    def auth(self, identity, password):
+        if len(self.session) > 0:
+            raise Exception("Cannot re-use authenticated client")
         self.session["a"] = random.randrange(self.config.N)
         self.session["pkc"] = mod_exp(self.config.g, self.session["a"], self.config.N)
-        self.session["salt"], self.session["pks"] = self.server.auth_begin(self.identity, self.session["pkc"])
+        self.session["salt"], self.session["pks"] = self.server.auth_begin(identity, self.session["pkc"])
         u = bin_str_to_big_int(sha256(self.session["pkc"], self.session["pks"]))
-        x = bin_str_to_big_int(sha256(self.session["salt"], self.password))
+        x = bin_str_to_big_int(sha256(self.session["salt"], password))
         tmp = mod_exp(self.config.g, x, self.config.N)
         tmp = mod_mult(self.config.k, tmp, self.config.N)
         tmp = mod_add(self.session["pks"], -tmp, self.config.N)
         tmp = mod_exp(tmp, (self.session["a"] + u * x), self.config.N)
         self.session["key"] = sha256(tmp)
         proof = get_key_proof(self.session["key"], self.session["salt"])
-        ret = self.server.auth_finish(self.identity, proof)
-        if ret == "OK":
-            self.auth_ok = True
-            return
-        else:
+        ret = self.server.auth_finish(identity, proof)
+        if ret != "OK":
             raise Exception("Auth failed")
+
+    def auth_hack(self, identity, pkc):
+        if len(self.session) > 0:
+            raise Exception("Cannot re-use authenticated client")
+        self.session["a"] = random.randrange(self.config.N)
+        self.session["salt"], self.session["pks"] = self.server.auth_begin(identity, pkc)
+        self.session["key"] = sha256(0L)
+        proof = get_key_proof(self.session["key"], self.session["salt"])
+        ret = self.server.auth_finish(identity, proof)
+        if ret != "OK":
+            raise Exception("Hack auth failed")
+
+    def get_session_key(self):
+        if "key" not in self.session:
+            raise Exception("Unauthenticated client")
+        return self.session["key"]
 
 
 def test_srp():
+    identity = "test_identity"
+    password = os.urandom(32)
     server = SRPServer()
     client = SRPClient(server)
-    client.reg("test_identity")
-    client.auth()
-    print "Client Key {ck}\nServer Key {sk}".format(ck=client.session["key"],
-                                                    sk=server.get_session_key(client.identity))
-    print "Test pass"
+    client.reg(identity, password)
+    client2 = SRPClient(server)
+    client2.auth(identity, password)
+    print "Client Key {ck}\nServer Key {sk}".format(ck=client2.get_session_key().encode('hex'),
+                                                    sk=server.get_session_key(identity).encode('hex'))
+    if client2.get_session_key() == server.get_session_key(identity):
+        print "Test pass"
+    else:
+        print "Test fail!!!!!!!!!!!!!!!!!!!!"
