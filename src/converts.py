@@ -2,6 +2,8 @@
 import cffi
 from misc import static_vars, Singleton
 import struct
+import hashlib
+
 
 KEY_LEN = 16
 
@@ -231,3 +233,17 @@ def big_int_to_bin_str(big_int):
     if len(s) % 2 == 1:
         s = '0' + s
     return s.decode('hex')
+
+
+def bin_str_to_big_int(bin_str):
+    return int(bin_str.encode('hex'), 16)
+
+
+def sha256(*args):
+    h = hashlib.sha256()
+    for a in args:
+        if type(a) == long or type(a) == int:
+            h.update(big_int_to_bin_str(a))
+        else:  # todo: add more type-specific conversions before hash
+            h.update(a)
+    return h.digest()

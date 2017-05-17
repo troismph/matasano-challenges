@@ -11,6 +11,14 @@ def mod_exp(b, e, m):
     return ret
 
 
+def mod_mult(a, b, m):
+    return (a * b) % m
+
+
+def mod_add(a, b, m):
+    return (a + b) % m
+
+
 def test_mod_exp():
     cases = [
         (2, 10, 1000),
