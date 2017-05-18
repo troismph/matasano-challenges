@@ -111,6 +111,21 @@ class SRPClient:
         if ret != "OK":
             raise Exception("Auth failed")
 
+    def auth_simplified(self, identity, password):
+        if len(self.session) > 0:
+            raise Exception("Cannot re-use authenticated client")
+        self.session["a"] = random.randrange(self.config.N)
+        self.session["pkc"] = mod_exp(self.config.g, self.session["a"], self.config.N)
+        self.session["salt"], self.session["pks"] = self.server.auth_begin(identity, self.session["pkc"])
+        u = bin_str_to_big_int(sha256(self.session["pkc"], self.session["pks"]))
+        x = bin_str_to_big_int(sha256(self.session["salt"], password))
+        s = mod_exp(self.session["pks"], (self.session["a"] + u * x), self.config.N)
+        self.session["key"] = sha256(s)
+        proof = get_key_proof(self.session["key"], self.session["salt"])
+        ret = self.server.auth_finish(identity, proof)
+        if ret != "OK":
+            raise Exception("Auth failed")
+
     def auth_hack(self, identity, pkc):
         if len(self.session) > 0:
             raise Exception("Cannot re-use authenticated client")
