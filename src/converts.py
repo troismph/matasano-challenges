@@ -228,11 +228,23 @@ def encrypt_aes_128_ctr(in_buf, key, nonce=None):
     return decrypt_aes_128_ctr(in_buf, key, nonce)
 
 
-def big_int_to_bin_str(big_int):
+def big_int_to_bin_str_deprecated(big_int):
     s = hex(big_int).rstrip('L')[2:]
     if len(s) % 2 == 1:
         s = '0' + s
     return s.decode('hex')
+
+
+def big_int_to_bin_str(big_int, pad_len=0):
+    s = format(big_int, "x")
+    if len(s) % 2 == 1:
+        s = '0' + s
+    t = s.decode('hex')
+    d = pad_len - len(t)
+    if d > 0:
+        return '\x00' * d + t
+    else:
+        return t
 
 
 def bin_str_to_big_int(bin_str):
