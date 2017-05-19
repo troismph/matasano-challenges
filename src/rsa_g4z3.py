@@ -5,8 +5,7 @@ from utils import mod_exp, mod_mult, mod_add
 import gensafeprime
 import os
 
-PRIME_CANDIDATES = [7, 11, 13, 17, 23, 29, 31, 37]
-PRIME_LEN_BYTES = 16
+PRIME_LEN_BYTES = 4
 PRIME_LEN_BITS = PRIME_LEN_BYTES * 8
 BLOCK_LEN_BYTES = PRIME_LEN_BYTES * 2
 
@@ -88,7 +87,7 @@ def get_e(t):
     return e
 
 
-def rsa_gen_key():
+def rsa_gen_key(custom_e=None):
     """
     
     :return: [0]: public key, [1]: private key
@@ -96,7 +95,7 @@ def rsa_gen_key():
     p, q = get_p_q()
     n = p * q
     t = get_totient(p, q)
-    e = get_e(t)
+    e = get_e(t) if custom_e is None else custom_e
     d = inv_mod(e, t)
     return [e, n], [d, n]
 
