@@ -4,10 +4,9 @@ from converts import bin_str_to_big_int, big_int_to_bin_str
 
 
 def crack():
-    e = 7
     msg = "I am the innocent message..."
     print "Original message\n{m}".format(m=msg)
-    pk, sk = rsa_gen_key(custom_e=e)
+    pk, sk = rsa_gen_key()
     cipher = rsa_encrypt(msg, pk)
     # handle only first block for simplicity
     c = bin_str_to_big_int(cipher[:BLOCK_LEN_BYTES])
