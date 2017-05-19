@@ -1,4 +1,5 @@
-from rsa_g4z3 import rsa_gen_key, rsa_encrypt, inv_mod, BLOCK_LEN_BYTES
+from rsa_g4z3 import rsa_gen_key, rsa_encrypt, BLOCK_LEN_BYTES
+from math_g4z3 import inv_mod
 from converts import bin_str_to_big_int, big_int_to_bin_str
 
 E = 3

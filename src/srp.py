@@ -4,7 +4,7 @@ import random
 import os
 import hmac
 import hashlib
-from utils import mod_exp, mod_add, mod_mult
+from math_g4z3 import mod_exp, mod_add, mod_mult
 from converts import bin_str_to_big_int, big_int_to_bin_str, sha256
 
 

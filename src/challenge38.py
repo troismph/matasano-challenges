@@ -1,5 +1,5 @@
 from srp import SRPClient, SRPDefaultConfig, get_key_proof
-from utils import mod_exp, mod_add, mod_mult
+from math_g4z3 import mod_exp, mod_add, mod_mult
 from converts import sha256, bin_str_to_big_int, big_int_to_bin_str
 import random
 import sys

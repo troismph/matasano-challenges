@@ -1,4 +1,4 @@
-from utils import mod_exp
+from math_g4z3 import mod_exp
 from converts import big_int_to_bin_str
 import random
 
