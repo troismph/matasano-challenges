@@ -1,4 +1,4 @@
-from rsa_g4z3 import rsa_gen_key, rsa_encrypt, BLOCK_LEN_BYTES
+from rsa_g4z3 import rsa_gen_key, rsa_encrypt
 from math_g4z3 import inv_mod
 from converts import bin_str_to_big_int, big_int_to_bin_str
 
@@ -38,12 +38,13 @@ def crack():
     msg = "I am the innocent message..."
     print "Original message\n{m}".format(m=msg.encode('hex'))
     # generate key pairs
-    kps = zip(*[rsa_gen_key(E) for i in range(E)])
+    kps = zip(*[rsa_gen_key(e=E) for i in range(E)])
     pks = kps[0]
     nt, mss, inv_mods = get_nt_ms_inv_mods(pks)
     ciphers = [rsa_encrypt(msg, pk) for pk in pks]
     # only decrypt block 0 for simplicity
-    cs = [bin_str_to_big_int(cipher[:BLOCK_LEN_BYTES]) for cipher in ciphers]
+    block_len_bytes = pks[0][2] >> 3
+    cs = [bin_str_to_big_int(cipher[:block_len_bytes]) for cipher in ciphers]
     all_params = zip(cs, mss, inv_mods)
     adds = [reduce(lambda x, y: x * y, param_set) for param_set in all_params]
     final = reduce(lambda x, y: x + y, adds) % nt

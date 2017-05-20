@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import os
 import cffi
 from misc import static_vars, Singleton
 import struct
@@ -259,3 +260,50 @@ def sha256(*args):
         else:  # todo: add more type-specific conversions before hash
             h.update(a)
     return h.digest()
+
+
+def pkcs15_pad(buf_in, block_len):
+    """
+    Works only when len(buf_in) + 3 < block_len, for simplicity
+    :param buf_in: 
+    :param block_len: 
+    :return: 
+    """
+    nff = block_len - len(buf_in) - 3 - 4
+    assert nff > 0, "Data too long to pad"
+    asn = big_int_to_bin_str(len(buf_in), 4)
+    return '\x00\x01' + '\xff' * nff + '\x00' + asn + buf_in
+
+
+def pkcs15_unpad(buf_in, bug=False):
+    """
+    Works only with 1-block data
+    :param buf_in: 
+    :param bug: 
+    :return: 
+    """
+    if buf_in[:2] != '\x00\x01':
+        return None
+    for i in range(2, len(buf_in)):
+        if buf_in[i] == '\xff':
+            continue
+        if buf_in[i] == '\x00':
+            l = bin_str_to_big_int(buf_in[i + 1:i + 5])
+            if i + 4 + l + 1 == len(buf_in):
+                return buf_in[i + 5:]
+            elif bug:
+                # illegal padding, probably nasty
+                return buf_in[i + 5:i + 5 + l]
+            else:
+                return None
+
+
+def test_pkcs15_padding():
+    block_len = 128
+    nround = 10
+    for x in range(nround):
+        buf_in = os.urandom(8)
+        padded = pkcs15_pad(buf_in, block_len)
+        unpadded = pkcs15_unpad(padded)
+        assert unpadded == buf_in, "Padding scrambled message"
+    print "Pass after {n} rounds".format(n=nround)
