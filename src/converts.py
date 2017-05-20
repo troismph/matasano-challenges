@@ -262,6 +262,22 @@ def sha256(*args):
     return h.digest()
 
 
+def ez_hash(method, *args):
+    """
+    An easier-to-use generic hash function. Actual hash is done in 'method'
+    :param method: 
+    :param args: 
+    :return: 
+    """
+    h = method()
+    for a in args:
+        if type(a) == long or type(a) == int:
+            h.update(big_int_to_bin_str(a))
+        else:  # todo: add more type-specific conversions before hash
+            h.update(a)
+    return h.digest()
+
+
 def pkcs15_pad(buf_in, block_len):
     """
     Works only when len(buf_in) + 3 < block_len, for simplicity
