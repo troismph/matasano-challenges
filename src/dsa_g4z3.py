@@ -36,38 +36,46 @@ def dsa_gen_key(conf):
     return x, y
 
 
-def dsa_sign(msg, x, conf):
-    def try_sign(m_, x_, c_):
-        digest = bin_str_to_big_int(ez_hash(hashlib.sha1, m_))
-        k = random.randrange(1, c_.q)
-        r = mod_exp(c_.g, k, c_.p) % c_.q
-        if r == 0:
-            # time to retry with different k
-            return None
-        s = mod_mult(inv_mod(k, c_.q), mod_add(digest, mod_mult(x_, r, c_.q), c_.q), c_.q)
-        if s == 0:
-            # time to retry with different k
-            return None
+def try_sign(d_, x_, c_, l_, k_=None):
+    k = k_ or random.randrange(1, c_.q)
+    r = mod_exp(c_.g, k, c_.p) % c_.q
+    if r == 0:
+        # time to retry with different k
+        return None
+    s = mod_mult(inv_mod(k, c_.q), mod_add(d_, mod_mult(x_, r, c_.q), c_.q), c_.q)
+    if s == 0:
+        # time to retry with different k
+        return None
+    if l_:
+        return r, s, k
+    else:
         return r, s
 
+
+def dsa_sign(msg, x, conf, leak=False):
+    digest = bin_str_to_big_int(ez_hash(hashlib.sha1, msg))
     cnt = 0
     while cnt < 10:
-        ret = try_sign(msg, x, conf)
+        ret = try_sign(digest, x, conf, leak)
         if ret is not None:
             return ret
         cnt += 1
     assert False, "Cannot find a valid signature after {n} tries".format(n=cnt)
 
 
-def dsa_verify(msg, r, s, y, conf):
-    if not (0 < r < conf.q and 0 < s < conf.q):
-        return False
+def verify_by_digest(d, r, s, y, conf):
     w = inv_mod(s, conf.q)
-    digest = bin_str_to_big_int(ez_hash(hashlib.sha1, msg))
-    u1 = mod_mult(digest, w, conf.q)
+    u1 = mod_mult(d, w, conf.q)
     u2 = mod_mult(r, w, conf.q)
     v = mod_mult(mod_exp(conf.g, u1, conf.p), mod_exp(y, u2, conf.p), conf.p) % conf.q
     return v == r
+
+
+def dsa_verify(msg, r, s, y, conf):
+    if not (0 < r < conf.q and 0 < s < conf.q):
+        return False
+    digest = bin_str_to_big_int(ez_hash(hashlib.sha1, msg))
+    return verify_by_digest(digest, r, s, y, conf)
 
 
 def test_dsa():
