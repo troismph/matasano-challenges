@@ -66,7 +66,7 @@ def crack():
         if r_ == r and s_ == s:
             print "\nFound!, k={k}".format(k=hex(k))
             print "Private key={x}".format(x=hex(x_))
-            fp = ez_hash(hashlib.sha1, big_int_to_bin_str(x_))
+            fp = ez_hash(hashlib.sha1, big_int_to_bin_str(x_).encode('hex'))
             print "SHA-1 fingerprint={f}".format(f=fp.encode('hex'))
             if verify_keys(x_, y, dsa_conf):
                 print "Keys verified"
