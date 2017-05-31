@@ -71,8 +71,9 @@ def verify_by_digest(d, r, s, y, conf):
     return v == r
 
 
-def dsa_verify(msg, r, s, y, conf):
-    if not (0 < r < conf.q and 0 < s < conf.q):
+def dsa_verify(msg, r, s, y, conf, **kwargs):
+    rougue = kwargs.get('rougue', False)
+    if (not rougue) and (not (0 < r < conf.q and 0 < s < conf.q)):
         return False
     digest = bin_str_to_big_int(ez_hash(hashlib.sha1, msg))
     return verify_by_digest(digest, r, s, y, conf)
