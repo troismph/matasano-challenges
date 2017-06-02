@@ -4,6 +4,14 @@ from math_g4z3 import mod_mult, mod_exp
 import random
 import sys
 
+dbg_pk = [50629339891155856886218025166668085276082919955574815073230163914539100165743L,
+          85905363114125152648773942901125465327830868564948748725092098038812916109333L, 256]
+
+dbg_sk = [9124008309585214770795690513837262794296142885988516817425068204291665571207L,
+          85905363114125152648773942901125465327830868564948748725092098038812916109333L, 256]
+
+dbg_msg = 'Dhanger, je vais pas change'
+
 
 class ParityOracle:
     def __init__(self):
@@ -71,6 +79,7 @@ class BinNavParity(BinNavAbstract):
         return parity
 
     def check(self, p):
+        print "Check {p}".format(p=p)
         c = bin_str_to_big_int(rsa_encrypt(big_int_to_bin_str(p), self._oracle.pk))
         return c == self._cipher
 
@@ -102,12 +111,12 @@ def final_search(lb, ub, nav):
 def bin_search(lb, ub, nav):
     lv = 0
     print "{lb}, {ub}".format(lb=lb, ub=ub)
-    while ub - lb > 16:
+    while ub - lb > 256:
         lv += 1
         low = nav.nav(lb, ub, lv)
         lb, ub = zoom_in(lb, ub, low, nav.check)
-        # print "{d} {r} : {lb}, {ub}".format(d='L' if low else 'U', r=ub-lb, lb=lb, ub=ub)
-        print "\rRange length {l}".format(l=len(str(ub - lb))) + " " * 40,
+        print "{d} {lv} {r} : {lb}, {ub}".format(d='L' if low else 'U', lv=lv, r=ub - lb, lb=lb, ub=ub)
+        # print "\rRange length {l}".format(l=len(str(ub - lb))) + " " * 40,
         sys.stdout.flush()
     if ub != lb:
         lb = final_search(lb, ub, nav)
