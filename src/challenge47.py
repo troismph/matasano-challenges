@@ -2,22 +2,28 @@ from rsa_g4z3 import rsa_gen_key, rsa_decrypt, rsa_encrypt
 from converts import bin_str_to_big_int, big_int_to_bin_str, pkcs15_pad, pkcs15_unpad
 from math_g4z3 import mod_mult, mod_exp
 import sys
-import inspect
 
 
 class Oracle(object):
-    def __init__(self):
-        self.pk, self._sk = rsa_gen_key(len=256)
+    def __init__(self, len_bits):
+        self.pk, self._sk = rsa_gen_key(len=len_bits)
+        self.block_len_bytes = len_bits / 8
 
     def is_conform(self, cipher):
         m = rsa_decrypt(cipher, self._sk, True)
         return m[:2] == '\x00\x02'
 
+    def is_conform_raw(self, cipher_n):
+        m_n = mod_exp(cipher_n, self._sk[0], self._sk[1])
+        m_str = big_int_to_bin_str(m_n)
+        m_str = '\x00' * (self.block_len_bytes - len(m_str)) + m_str
+        return m_str[:2] == '\x00\x02'
 
-def test_oracle():
-    oracle = Oracle()
+
+def test_oracle(len_bits):
+    oracle = Oracle(len_bits)
     msg = 'our pitch'
-    msg_pad = pkcs15_pad(msg, 32, '\x02')
+    msg_pad = pkcs15_pad(msg, oracle.block_len_bytes, '\x02')
     cipher = rsa_encrypt(msg_pad, oracle.pk)
     assert oracle.is_conform(cipher), 'Test failed'
 
@@ -33,8 +39,8 @@ def search_up(begin, c, oracle, fn):
             print '\r{fn}:{x:x}'.format(fn=fn, x=x) + ' ' * 40,
             sys.stdout.flush()
         t = mod_mult(c, mod_exp(x, e, n), n)
-        t_str = big_int_to_bin_str(t)
-        if oracle.is_conform(t_str):
+        # t_str = big_int_to_bin_str(t)
+        if oracle.is_conform_raw(t):
             ret = x
             break
         x += 1
@@ -43,13 +49,13 @@ def search_up(begin, c, oracle, fn):
 
 
 def step_2_a(B, c, oracle):
-    fn = inspect.stack()[0][3]
+    fn = 'step_2_a'
     n = oracle.pk[1]
     return search_up(n / (3 * B), c, oracle, fn)
 
 
 def step_2_b(c, s, oracle):
-    fn = inspect.stack()[0][3]
+    fn = 'step_2_b'
     return search_up(s + 1, c, oracle, fn)
 
 
@@ -61,7 +67,7 @@ def round_div_int(a, b, floor=True):
 
 
 def step_2_c(m, c, s, B, oracle):
-    fn = inspect.stack()[0][3]
+    fn = 'step_2_c'
     a, b = m
     e = oracle.pk[0]
     n = oracle.pk[1]
@@ -91,7 +97,7 @@ def step_2_c(m, c, s, B, oracle):
 
 def step_3(M, n, s, B):
     ret = []
-    fn = inspect.stack()[0][3]
+    fn = 'step_3'
     print '{fn} begin M={M_len}'.format(fn=fn, M_len=len(M))
     for m in M:
         a, b = m
@@ -110,18 +116,18 @@ def step_3(M, n, s, B):
     return ret
 
 
-def crack():
+def bleichenbacher(len_bits):
     msg = 'pitch is ours'
-    oracle = Oracle()
-    msg_pad = pkcs15_pad(msg, 32, '\x02')
-    B = 1 << (8 * (32 - 2))
+    oracle = Oracle(len_bits)
+    msg_pad = pkcs15_pad(msg, oracle.block_len_bytes, '\x02')
+    B = 1 << (8 * (oracle.block_len_bytes - 2))
     cipher = rsa_encrypt(msg_pad, oracle.pk)
     # init values s0, c0, and M0
     s = 1
     c = bin_str_to_big_int(cipher)
     M = [[2 * B, 3 * B - 1]]
     m = None
-    for i in range(9999):
+    for i in range(1, 9999):
         # calculate new s
         if i == 1:
             # step 2.a
@@ -147,7 +153,11 @@ def crack():
                 break
     msg_crack = big_int_to_bin_str(m)
     print 'Crack finished, msg\n{msg}'.format(msg=msg_crack)
-    msg_crack = '\x00' * (32 - len(msg_crack)) + msg_crack
-    unpadded_msg = pkcs15_unpad(msg_crack, False, '\x02')
-    print 'Unpadded msg\n{msg}'.format(msg=unpadded_msg)
-    assert msg == unpadded_msg, 'Crack failed'
+    msg_crack = '\x00' * (oracle.block_len_bytes - len(msg_crack)) + msg_crack
+    unpad_msg = pkcs15_unpad(msg_crack, False, '\x02')
+    print 'Unpad msg\n{msg}'.format(msg=unpad_msg)
+    assert msg == unpad_msg, 'Crack failed'
+
+
+def crack():
+    bleichenbacher(256)
