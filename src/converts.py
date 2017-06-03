@@ -278,27 +278,29 @@ def ez_hash(method, *args):
     return h.digest()
 
 
-def pkcs15_pad(buf_in, block_len):
+def pkcs15_pad(buf_in, block_len, cat='\x01'):
     """
     Works only when len(buf_in) + 3 < block_len, for simplicity
     :param buf_in: 
-    :param block_len: 
+    :param block_len: in bytes
+    :param cat:
     :return: 
     """
     nff = block_len - len(buf_in) - 3 - 4
     assert nff > 0, "Data too long to pad"
     asn = big_int_to_bin_str(len(buf_in), 4)
-    return '\x00\x01' + '\xff' * nff + '\x00' + asn + buf_in
+    return '\x00' + cat + '\xff' * nff + '\x00' + asn + buf_in
 
 
-def pkcs15_unpad(buf_in, bug=False):
+def pkcs15_unpad(buf_in, bug=False, cat='\x01'):
     """
     Works only with 1-block data
     :param buf_in: 
     :param bug: 
+    :param cat:
     :return: 
     """
-    if buf_in[:2] != '\x00\x01':
+    if buf_in[:2] != '\x00' + cat:
         return None
     for i in range(2, len(buf_in)):
         if buf_in[i] == '\xff':
