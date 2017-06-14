@@ -167,11 +167,14 @@ def encrypt_aes_128_ecb(in_buf, key):
     return bytearray(cffienv.FFI.buffer(out_buf, n))
 
 
-def encrypt_aes_128_cbc(in_buf_intact, key, iv=None):
+def encrypt_aes_128_cbc(in_buf_intact, key, iv=None, pad=True):
     # we handle only bytearrays!
     key_len = 16
     in_buf = bytearray(in_buf_intact)
-    pkcs7_pad(in_buf, key_len)
+    if pad:
+        pkcs7_pad(in_buf, key_len)
+    else:
+        assert len(in_buf_intact) % 16 == 0, "Invalid buf length without padding"
     cffienv = OpenSSLCFFI()
     key_s = str(key)
     nv = iv or bytearray(key_len)
@@ -325,3 +328,13 @@ def test_pkcs15_padding():
         unpadded = pkcs15_unpad(padded)
         assert unpadded == buf_in, "Padding scrambled message"
     print "Pass after {n} rounds".format(n=nround)
+
+
+def cbc_mac_128(buf, key, iv=None):
+    """
+    :type buf: bytearray 
+    :param key: 
+    :param iv: 
+    :return: 
+    """
+    return encrypt_aes_128_cbc(buf, key, iv)[-16:]
