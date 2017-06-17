@@ -1,113 +1,10 @@
-import os
-import random
-import string
 import sys
-from converts import encrypt_aes_128_ecb, pkcs7_pad
 
-EASY_BLOCK_LEN_BYTES = 2
-HARD_BLOCK_LEN_BYTES = 4
+from md_hash import find_collision, make_combines, HARD_BLOCK_LEN_BYTES, hash_easy, hash_hard
+
+
 EASY_KEY = bytearray(b'\x9es')
 HARD_KEY = bytearray(b'\xbc\x78\x2f\xa2')
-ALPHABET = string.ascii_letters + string.digits
-
-
-def small_enc(buf, key, bl):
-    """
-    An AES encryption operating on BLOCK_LEN_BYTES-byte blocks 
-    """
-    k = bytearray(key)
-    b = bytearray(buf)
-    pkcs7_pad(k, 16)
-    pkcs7_pad(b, 16)
-    e = encrypt_aes_128_ecb(b, k)
-    return e[:bl]
-
-
-def md_hash_(m, h, bl):
-    h_ = h
-    for i in range(0, len(m), bl):
-        h_ = small_enc(m[i:i + bl], h_, bl)
-    return h_
-
-
-def hash_easy(m, h):
-    return md_hash_(m, h, EASY_BLOCK_LEN_BYTES)
-
-
-def hash_hard(m, h):
-    return md_hash_(m, h, HARD_BLOCK_LEN_BYTES)
-
-
-def test_md_hash():
-    n_round = 10
-    for x in range(n_round):
-        l = random.randrange(1, 99)
-        m = os.urandom(l).encode('hex')
-        h = hash_easy(m, EASY_KEY)
-        print "{m}:{h}".format(m=m, h=str(h).encode('hex'))
-
-
-def get_random_m():
-    l = random.randrange(EASY_BLOCK_LEN_BYTES, 32, EASY_BLOCK_LEN_BYTES)
-    m = ''.join(random.choice(ALPHABET) for i in range(l))
-    return m
-
-
-def find_collision(h):
-    m0 = get_random_m()
-    t0 = hash_easy(m0, h)
-    max_try = 2 << 16
-    for x in xrange(max_try):
-        m1 = get_random_m()
-        t1 = hash_easy(m1, h)
-        if t1 == t0:
-            if m1 == m0:
-                continue
-            print "\r" + " " * 60 + "\r",
-            return [m0, m1]
-        if x & 0xff == 0xff:
-            print "\rround {x:x} m1={m1};t1={t1}".format(x=x, m1=m1, t1=str(t1).encode('hex')) + ' ' * 20,
-            sys.stdout.flush()
-    return None
-
-
-def test_find_collision():
-    n_round = 10
-    for i in range(n_round):
-        ret = find_collision(EASY_KEY)
-        if ret is None:
-            print "Bad luck, retrying"
-            continue
-        m0, m1 = ret
-        t = hash_easy(m0, EASY_KEY)
-        print "Found collision {m0}:{m1}:{t}".format(m0=m0, m1=m1, t=str(t).encode('hex'))
-        h0 = hash_easy(m0, EASY_KEY)
-        h1 = hash_easy(m1, EASY_KEY)
-        assert h0 == h1, 'Wrong collision'
-
-
-def make_combines(bin_tuples):
-    n = len(bin_tuples)
-    fmt_str = '0{n}b'.format(n=n)
-    for x in range(1 << n):
-        m = []
-        s = format(x, fmt_str)
-        for y in range(n):
-            idx = int(s[y])
-            m.append(bin_tuples[y][idx])
-        yield m
-
-
-def test_make_combines(n=10):
-    bin_tuples = [['1', '0'] for x in range(n)]
-    pool = []
-    for x in make_combines(bin_tuples):
-        pool.append(''.join(x))
-    fmt_str = '0{n}b'.format(n=n)
-    for x in range(1 << n):
-        s = format(x, fmt_str)
-        assert s in pool, 'Not found in combinations {s}'.format(s=s)
-    print 'Test pass'
 
 
 def collisions_for_debug():
@@ -133,7 +30,7 @@ def find_2n_collision(n):
     collisions = []
     h = EASY_KEY
     while len(collisions) < n:
-        r = find_collision(h)
+        r = find_collision(h, hash_easy)
         if r is None:
             print "Bad luck, retrying"
             continue
@@ -178,6 +75,18 @@ def find_collision_in_pool(pool, ps):
         if len(v) > 1:
             ret.append(v)
     return ret
+
+
+def test_find_collision_in_pool():
+    basis = collisions_for_debug()
+    pool = make_combines(basis)
+    ret = find_collision_in_pool(pool, 1 << (HARD_BLOCK_LEN_BYTES * 8 / 2))
+    assert len(ret) > 0, 'Failed to find collisions in pool'
+    for x in ret:
+        h = hash_hard(x[0], HARD_KEY)
+        print "hash: {h}".format(h=str(h).encode('hex'))
+        for y in x:
+            print y
 
 
 def find_chain_collision():
