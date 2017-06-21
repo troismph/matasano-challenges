@@ -10,8 +10,8 @@ HARD_BLOCK_LEN_BYTES = 4
 ALPHABET = string.ascii_letters + string.digits
 
 
-def get_random_m():
-    l = random.randrange(EASY_BLOCK_LEN_BYTES, 32, EASY_BLOCK_LEN_BYTES)
+def get_random_m(l=None):
+    l = l or random.randrange(EASY_BLOCK_LEN_BYTES, 32, EASY_BLOCK_LEN_BYTES)
     m = ''.join(random.choice(ALPHABET) for i in range(l))
     return m
 
