@@ -180,7 +180,7 @@ def attack(msg, k, bl, hash_func, key):
     assert blk_cnt(msg, bl) == (1 << k), 'Wrong message length and/or k, blk_cnt={bc}, bl={bl}, k={k}'.format(
         bc=blk_cnt(msg, bl), bl=bl, k=k)
     # x_msgs = make_exp_msgs(k, bl, hash_func, key)
-    assert k == 8, 'Cannot load, check code'
+    assert k == 8, 'Cannot load, check code, or run test_make_exp_msgs() first'
     x_msgs = load_exp_msgs(k, bl, key)
     assert x_msgs is not None, 'x_msgs not loaded'
     x_final_state = get_exp_final_state(x_msgs, hash_func, key)
