@@ -109,3 +109,43 @@ def test_make_combines(n=10):
         s = format(x, fmt_str)
         assert s in pool, 'Not found in combinations {s}'.format(s=s)
     print 'Test pass'
+
+
+def incr_block(block):
+    """
+    :type block: bytearray 
+    :return: 
+    """
+    overflow = True
+    for idx in range(len(block)):
+        if block[idx] == 0xff:
+            continue
+        block[idx] += 1
+        overflow = False
+        for c in range(idx):
+            block[c] = 0
+        break
+    return overflow
+
+
+def enum_block(bl):
+    """
+    An iterator to generae all possible values of one block
+    :param bl: block length in bytes
+    :return: 
+    """
+    ctr = 0
+    blk = bytearray(bl)
+    yield blk
+    while not incr_block(blk):
+        yield blk
+        ctr += 1
+
+
+def test_enum_block():
+    dedup = set()
+    n = 2
+    for blk in enum_block(n):
+        dedup.add(str(blk))
+    assert len(dedup) == (1 << (n * 8)), 'Test failed, get:need={g}:{n}'.format(g=len(dedup), n=(1 << (2 * 8)))
+    print 'Test pass'

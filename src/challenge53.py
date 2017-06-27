@@ -1,8 +1,10 @@
-import sys
-import random
 import os
-from md_hash import find_collision, get_random_m, EASY_BLOCK_LEN_BYTES, hash_easy
+import random
+import sys
+
 from converts import b64encode, b64decode
+from md_hash import get_random_m, EASY_BLOCK_LEN_BYTES, hash_easy
+from src.md_hash import enum_block
 
 
 def blk_cnt(m, bl):
@@ -15,33 +17,6 @@ def iter_blk(msg, bl):
     c = blk_cnt(msg, bl)
     for i in range(c):
         yield msg[i * bl: i * bl + bl]
-
-
-def incr_block(block):
-    """
-    :type block: bytearray 
-    :return: 
-    """
-    overflow = True
-    for idx in range(len(block)):
-        if block[idx] == 0xff:
-            continue
-        block[idx] += 1
-        overflow = False
-        break
-    return overflow
-
-
-def enum_block(bl):
-    """
-    An iterator to generae all possible values of one block
-    :param bl: block length in bytes
-    :return: 
-    """
-    blk = bytearray(bl)
-    yield blk
-    while not incr_block(blk):
-        yield blk
 
 
 def find_collision_block(n_blk, bl, hash_func, key):
