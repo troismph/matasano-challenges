@@ -111,33 +111,49 @@ def test_make_combines(n=10):
     print 'Test pass'
 
 
-def incr_block(block):
+def incr_block(block, alphabet=None):
     """
     :type block: bytearray 
+    :type alphabet: str
     :return: 
     """
     overflow = True
     for idx in range(len(block)):
-        if block[idx] == 0xff:
-            continue
-        block[idx] += 1
-        overflow = False
-        for c in range(idx):
-            block[c] = 0
-        break
+        if alphabet is None:
+            if block[idx] == 0xff:
+                continue
+            else:
+                block[idx] += 1
+                overflow = False
+                for c in range(idx):
+                    block[c] = 0
+                break
+        else:
+            if block[idx] == alphabet[-1]:
+                continue
+            else:
+                next_idx = alphabet.index(chr(block[idx])) + 1
+                block[idx] = alphabet[next_idx]
+                overflow = False
+                for c in range(idx):
+                    block[c] = alphabet[0]
+                break
     return overflow
 
 
-def enum_block(bl):
+def enum_block(bl, alphabet=None):
     """
     An iterator to generae all possible values of one block
     :param bl: block length in bytes
+    :type alphabet: bytearray
     :return: 
     """
     ctr = 0
-    blk = bytearray(bl)
+    if alphabet:
+        alphabet = bytearray(alphabet)
+    blk = bytearray([alphabet[0]] * bl) if alphabet else bytearray(bl)
     yield blk
-    while not incr_block(blk):
+    while not incr_block(blk, alphabet):
         yield blk
         ctr += 1
 
