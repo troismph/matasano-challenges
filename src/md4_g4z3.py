@@ -44,13 +44,15 @@ INIT_STATE = (0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476)
 
 
 class MD4(object):
-    def __init__(self, init_state=INIT_STATE):
-        self.h = list(init_state)
+    def __init__(self, manipulator=None):
+        self.h = list(INIT_STATE)
         self.r3_idx = (0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15)
         self.phy = (phy0, phy1, phy2)
         self.lrot_off = ((3, 7, 11, 19), (3, 5, 9, 13), (3, 9, 11, 15))
         self.trailing = ''
         self.msg_len = 0
+        self._manipulator = manipulator
+        self._trace = []
 
     def _word_idx(self, r, s):
         if r == 0:
@@ -62,14 +64,22 @@ class MD4(object):
 
     def _add_block(self, m):
         h = list(self.h)
-        blk = struct.unpack('<16I', m)
+        blk = list(struct.unpack('<16I', m))
+        if self._manipulator:
+            self._manipulator.set_m(blk)
+            self._manipulator.set_h(h)
         for r in range(3):
             for s in range(16):
                 state_idx = (16 - s) % 4
                 word_idx = self._word_idx(r, s)
                 lrot_offset = self.lrot_off[r][s % 4]
                 h_rot = rrot_list(h, s % 4)
-                h[state_idx] = self.phy[r](h_rot, blk[word_idx], lrot_offset)
+                h_next = self.phy[r](h_rot, blk[word_idx], lrot_offset)
+                if self._manipulator:
+                    self._manipulator.go(r, word_idx, state_idx, h_next, h_rot, lrot_offset)
+                else:
+                    h[state_idx] = h_next
+                self._trace.append(h_next)
         for i in range(4):
             self.h[i] = (self.h[i] + h[i]) % (2 ** 32)
 
@@ -78,7 +88,7 @@ class MD4(object):
         aug_m = self.trailing + m
         len_aug = len(aug_m)
         trailing_len = len_aug % 64
-        self.trailing = aug_m[-trailing_len:]
+        self.trailing = '' if trailing_len == 0 else aug_m[-trailing_len:]
         for x in range(0, len_aug - trailing_len, 64):
             self._add_block(aug_m[x: x + 64])
 
@@ -86,6 +96,9 @@ class MD4(object):
         self.update('\x80' + '\x00' * ((55 - self.msg_len) % 64) + struct.pack('Q', self.msg_len * 8))
         h = struct.pack('<4I', *self.h)
         return h
+
+    def get_trace(self):
+        return self._trace
 
 
 def test():

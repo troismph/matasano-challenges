@@ -1,6 +1,13 @@
 # User-specified extension
 *.ignore
 .idea/
+.vs/
+Debug/
+*.obj
+*.pdb
+*.tlog
+*.idb
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
