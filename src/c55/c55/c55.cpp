@@ -8,6 +8,7 @@
 int main()
 {
 	test_rrot_list();
+	test_md4();
     return 0;
 }
 
