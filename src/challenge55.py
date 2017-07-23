@@ -385,32 +385,6 @@ def find_collision():
         md4_ = md4_g4z3.MD4()
         md4_.update(m_)
         hash_m_ = md4_.digest()
-        # trace = md4.get_trace()
-        # trace_ = md4_.get_trace()
-        # concord = 0
-        # z = zip(trace, trace_)
-        # for t, t_ in z:
-        #     if t == t_:
-        #         concord += 1
-        #     else:
-        #         break
-        # if concord > concord_max:
-        #     print i, concord, '#' * concord
-        #     concord_max = concord
-        concord = 0
-        # for t, t_ in z[21:25]:
-        #     if t == t_:
-        #         concord += 1
-        # if concord > 0:
-        #     print i, '=' * concord
-        # concord = 0
-        # for t, t_ in z[37:41]:
-        #     if t == t_:
-        #         concord += 1
-        # if concord > 0:
-        #     print i, '+' * concord
-        # hash_m = ez_hash(md4_g4z3.MD4, m)
-        # hash_m_ = ez_hash(md4_g4z3.MD4, m_)
         if hash_m == hash_m_:
             print "Found with hash={h}".format(h=hash_m.encode('hex'))
             print "{a}\n{b}".format(a=m.encode('hex'), b=m_.encode('hex'))

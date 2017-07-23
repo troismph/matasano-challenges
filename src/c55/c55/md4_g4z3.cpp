@@ -1,11 +1,13 @@
+#include "stdafx.h"
 #include "md4_g4z3.h"
+#include "c55_manipulator.h"
+#include "c55_helpers.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <algorithm>
 #include <sstream>
 #include <iostream>
-#include <iomanip>
 
 
 using namespace std;
@@ -31,7 +33,7 @@ uint32_t lrot(uint32_t x, uint32_t n) {
 }
 
 
-void swap(uint32_t& a, uint32_t& b) {
+inline void swap(uint32_t& a, uint32_t& b) {
 	a = a ^ b;
 	b = b ^ a;
 	a = a ^ b;
@@ -61,6 +63,12 @@ void rrot_list(uint32_t* x, uint32_t s, uint32_t n) {
 	}
 }
 
+void rrot_states(uint32_t* x) {
+	swap(x[0], x[1]);
+	swap(x[0], x[2]);
+	swap(x[0], x[3]);
+}
+
 
 void test_rrot_list() {
 	uint32_t x[] = {1, 2, 3, 4};
@@ -87,7 +95,7 @@ void test_rrot_list() {
 	printf("Test pass\n");
 }
 
-
+/*
 uint32_t phy0(uint32_t h[], uint32_t m, uint32_t s) {
 	uint32_t t = h[0] + F(h[1], h[2], h[3]) + m;
 	return lrot(t, s);
@@ -104,14 +112,7 @@ uint32_t phy2(uint32_t h[], uint32_t m, uint32_t s) {
 	uint32_t t = h[0] + H(h[1], h[2], h[3]) + m + 0x6ed9eba1;
 	return lrot(t, s);
 }
-
-void chars_to_hex(unsigned char* buf_in, uint32_t s_in, char* buf_out, uint32_t s_out) {
-	stringstream ss;
-	for (uint32_t i = 0; i < s_in; i++) {
-		ss << std::setfill('0') << std::setw(2) << std::hex << (uint32_t)buf_in[i];
-	}
-	ss.str().copy(buf_out, s_out, 0);
-}
+*/
 
 void test_md4()
 {
@@ -156,23 +157,11 @@ void test_md4()
 	}
 }
 
-
-void uint32_to_chars(uint32_t i, unsigned char buf[4]) {
-	buf[0] = i & 0xff;
-	buf[1] = (i >> 8) & 0xff;
-	buf[2] = (i >> 16) & 0xff;
-	buf[3] = (i >> 24) & 0xff;
-}
-
-
-uint32_t chars_to_uint32(unsigned char buf[4]) {
-	return (uint32_t)buf[0] + (uint32_t)(buf[1] << 8)
-		+ (uint32_t)(buf[2] << 16) + (uint32_t)(buf[3] << 24);
-}
-
-
-MD4::MD4()
+MD4::MD4(AbstractManipulator* manip)
 {
+	_manip = manip;
+	memcpy(_trace, _h, 16);
+	_trace_len = 4;
 }
 
 void MD4::update(unsigned char * m, uint32_t s)
@@ -202,7 +191,7 @@ void MD4::update(unsigned char * m, uint32_t s)
 	}
 }
 
-void MD4::digest(unsigned char* d)
+void MD4::digest(unsigned char d[16])
 {
 	unsigned char buf[128];
 	buf[0] = 0x80;
@@ -222,6 +211,13 @@ void MD4::get_trace(uint32_t ** trace_ptr, uint32_t & s)
 	s = _trace_len;
 }
 
+void MD4::get_m(unsigned char buf[64])
+{
+	for (uint32_t i = 0; i < 16; i += 1) {
+		uint32_to_chars(_blk_buf[i], buf + i * 4);
+	}
+}
+
 uint32_t MD4::_word_idx(uint32_t r, uint32_t s)
 {
 	if (r == 0) {
@@ -239,19 +235,32 @@ void MD4::_add_block(unsigned char m[64])
 {
 	uint32_t h[4];
 	memcpy(h, _h, 16);
-	uint32_t blk[16];
 	for (uint32_t i = 0; i < 16; i++) {
-		blk[i] = chars_to_uint32(m + i * 4);
+		_blk_buf[i] = chars_to_uint32(m + i * 4);
+	}
+	if (_manip) {
+		_manip->reset(_blk_buf, _trace);
 	}
 	for (uint32_t r = 0; r < 3; r++) {
 		for (uint32_t s = 0; s < 16; s++) {
-			uint32_t state_idx = (16 - s) % 4;
 			uint32_t word_idx = _word_idx(r, s);
 			uint32_t lrot_offset = _lrot_off[r][s % 4];
-			//uint32_t h_rot = rrot_list(_h, 4, s % 4);
-			uint32_t h_next = _phy[r](h, blk[word_idx], lrot_offset);
+			uint32_t h_next = 0;
+
+			if (r == 0) {
+				h_next = phy0(h, _blk_buf[word_idx], lrot_offset);
+			}
+			else if (r == 1) {
+				h_next = phy1(h, _blk_buf[word_idx], lrot_offset);
+			}
+			else {
+				h_next = phy2(h, _blk_buf[word_idx], lrot_offset);
+			}
+			if (_manip) {
+				h_next = _manip->go(r, word_idx, h_next, h, lrot_offset);
+			}
 			h[0] = h_next;
-			rrot_list(h, 4, 1);
+			rrot_states(h);
 			_trace[_trace_len] = h_next;
 			_trace_len = (_trace_len + 1) % 256;
 		}

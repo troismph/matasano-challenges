@@ -3,10 +3,15 @@
 .idea/
 .vs/
 Debug/
+Release/
+*.exe
+*.vspx
 *.obj
 *.pdb
 *.tlog
 *.idb
+*.filters
+*.user
 
 
 # Byte-compiled / optimized / DLL files
