@@ -29,6 +29,8 @@ uint32_t get_bit(uint32_t x, uint32_t pos);
 // pos: bit position starting from 1
 uint32_t getter(uint32_t name, uint32_t seq, uint32_t pos, uint32_t* t);
 
+uint32_t getter(uint32_t v, uint32_t pos);
+
 // pos: bit position starting from 1
 void setter(uint32_t& x, uint32_t pos, uint32_t val);
 

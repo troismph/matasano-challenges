@@ -6,7 +6,7 @@
 class Manipulator: public AbstractManipulator {
 
 public:
-	Manipulator();
+	Manipulator(bool round2=true);
 	void reset(uint32_t m[16], uint32_t* t) override;
 	uint32_t go(uint32_t r, uint32_t word_idx, uint32_t h_next, uint32_t h_rot[4], uint32_t lrot_offset) override;
 

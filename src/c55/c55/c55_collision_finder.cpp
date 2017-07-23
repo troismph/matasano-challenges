@@ -16,7 +16,7 @@ CollisionFinder::CollisionFinder() {
 
 void CollisionFinder::compose(unsigned char msg[64], unsigned char msg_mod[64])
 {
-	Manipulator manip;
+	Manipulator manip(false);
 	MD4 md4((AbstractManipulator*)&manip);
 	md4.update(msg, 64);
 	md4.get_m(msg_mod);

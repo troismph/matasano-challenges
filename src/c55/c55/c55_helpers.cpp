@@ -41,6 +41,11 @@ uint32_t getter(uint32_t name, uint32_t seq, uint32_t pos, uint32_t* t) {
 	return get_bit(t[idx], pos - 1);
 }
 
+uint32_t getter(uint32_t v, uint32_t pos)
+{
+	return get_bit(v, pos - 1);
+}
+
 void setter(uint32_t & x, uint32_t pos, uint32_t val)
 {
 	set_bit<uint32_t>(x, pos - 1, val);
